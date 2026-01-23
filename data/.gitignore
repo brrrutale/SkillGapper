@@ -1,0 +1,5 @@
+# Ignoriere alle Projektdaten (diese sollten nicht im Git sein)
+projects/*
+
+# Aber behalte den Ordner
+!projects/.gitkeep
