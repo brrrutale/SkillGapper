@@ -87,12 +87,14 @@ function generateId() {
 
 // URL-Pfad parsen
 $requestUri = $_SERVER['REQUEST_URI'];
-$basePath = '/api';
 $path = parse_url($requestUri, PHP_URL_PATH);
 
-// Entferne /api Prefix falls vorhanden
-if (strpos($path, $basePath) === 0) {
-    $path = substr($path, strlen($basePath));
+// Finde den /api/ Teil im Pfad und extrahiere alles danach
+// Dies funktioniert unabhängig vom Basis-Verzeichnis (z.B. /SkillGapTool/api/projects)
+if (preg_match('#/api(/.*)?$#', $path, $matches)) {
+    $path = $matches[1] ?? '';
+} else {
+    $path = '';
 }
 
 $path = trim($path, '/');
