@@ -1,5 +1,6 @@
 # Ignoriere alle Projektdaten (diese sollten nicht im Git sein)
 projects/*
 
-# Aber behalte den Ordner
+# Aber behalte den Ordner und README
 !projects/.gitkeep
+!projects/README.txt

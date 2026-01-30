@@ -51,7 +51,13 @@ function getJsonInput() {
 
 function ensureDataDir() {
     if (!is_dir(DATA_DIR)) {
-        mkdir(DATA_DIR, 0755, true);
+        if (!mkdir(DATA_DIR, 0755, true)) {
+            errorResponse('Could not create data directory. Please ensure the server has write permissions for: ' . dirname(DATA_DIR), 500);
+        }
+    }
+    // Check if directory is writable
+    if (!is_writable(DATA_DIR)) {
+        errorResponse('Data directory is not writable. Please set write permissions (chmod 755) for: ' . DATA_DIR, 500);
     }
 }
 
