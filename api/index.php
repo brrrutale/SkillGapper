@@ -7,8 +7,9 @@
  *
  * Endpoints:
  * GET    /api/projects              - Liste aller Projekte
- * POST   /api/projects              - Neues Projekt erstellen
+ * POST   /api/projects              - Neues Projekt erstellen (mit optionalem Passwort)
  * DELETE /api/projects/{id}         - Projekt löschen
+ * POST   /api/projects/{id}/validate-password - Passwort validieren
  * GET    /api/projects/{id}/template    - Template laden
  * POST   /api/projects/{id}/template    - Template speichern
  * GET    /api/projects/{id}/users       - Users laden
@@ -105,6 +106,10 @@ try {
             if (file_exists($projectFile)) {
                 $project = readJsonFile($projectFile);
                 if ($project) {
+                    // Don't send password to frontend, only hasPassword flag
+                    $hasPassword = !empty($project['password']);
+                    unset($project['password']);
+                    $project['hasPassword'] = $hasPassword;
                     $projects[] = $project;
                 }
             }
@@ -120,6 +125,7 @@ try {
     if ($method === 'POST' && count($segments) === 1 && $segments[0] === 'projects') {
         $input = getJsonInput();
         $name = trim($input['name'] ?? '');
+        $password = trim($input['password'] ?? '');
 
         if (empty($name)) {
             errorResponse('Project name is required');
@@ -132,10 +138,39 @@ try {
             'createdAt' => date('c'),
         ];
 
+        // Store password if provided
+        if (!empty($password)) {
+            $project['password'] = $password;
+        }
+
         $projectDir = getProjectDir($id);
         writeJsonFile($projectDir . '/project.json', $project);
 
-        jsonResponse($project, 201);
+        // Return project without password
+        $responseProject = $project;
+        unset($responseProject['password']);
+        $responseProject['hasPassword'] = !empty($password);
+
+        jsonResponse($responseProject, 201);
+    }
+
+    // POST /projects/{id}/validate-password - Passwort validieren
+    if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'projects' && $segments[2] === 'validate-password') {
+        $projectId = $segments[1];
+        $projectDir = getProjectDir($projectId);
+
+        if (!is_dir($projectDir)) {
+            errorResponse('Project not found', 404);
+        }
+
+        $project = readJsonFile($projectDir . '/project.json');
+        $input = getJsonInput();
+        $password = $input['password'] ?? '';
+
+        $storedPassword = $project['password'] ?? '';
+        $valid = ($password === $storedPassword);
+
+        jsonResponse(['valid' => $valid]);
     }
 
     // DELETE /projects/{id} - Projekt löschen
@@ -147,12 +182,26 @@ try {
             errorResponse('Project not found', 404);
         }
 
-        // Lösche alle Dateien im Projektordner
-        $files = glob($projectDir . '/*');
-        foreach ($files as $file) {
-            unlink($file);
+        // Rekursive Funktion zum Löschen eines Verzeichnisses mit allem Inhalt
+        function deleteDirectory($dir) {
+            if (!is_dir($dir)) {
+                return false;
+            }
+            // Hole alle Dateien und Verzeichnisse, inkl. versteckte (ausser . und ..)
+            $items = array_diff(scandir($dir), ['.', '..']);
+            foreach ($items as $item) {
+                $path = $dir . '/' . $item;
+                if (is_dir($path)) {
+                    deleteDirectory($path);
+                } else {
+                    unlink($path);
+                }
+            }
+            return rmdir($dir);
         }
-        rmdir($projectDir);
+
+        // Lösche das komplette Projektverzeichnis mit allen Daten
+        deleteDirectory($projectDir);
 
         jsonResponse(['success' => true]);
     }
