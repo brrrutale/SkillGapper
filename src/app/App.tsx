@@ -6,7 +6,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ProjectSelector } from './components/ProjectSelector';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
-import { dataProvider, type Project, type User, type Evaluation, type Template, type RatingLevel } from '@/lib/dataProvider';
+import { dataProvider, type Project, type User, type Skill, type Evaluation, type Template, type RatingLevel } from '@/lib/dataProvider';
 
 // SVG Pfad für das Chart-Icon (war vorher in Figma-Import)
 const svgPaths = {
@@ -14,19 +14,19 @@ const svgPaths = {
 };
 
 interface DraggableSkillItemProps {
-  skill: string;
+  skill: Skill;
   index: number;
   targetValue?: number;
   moveSkill: (dragIndex: number, hoverIndex: number) => void;
-  updateSkillInTemplate: (oldSkill: string, newSkill: string) => void;
-  removeSkillFromTemplate: (skill: string) => void;
-  updateTargetValue: (skill: string, value: number | undefined) => void;
+  updateSkillInTemplate: (skillId: string, newName: string) => void;
+  removeSkillFromTemplate: (skillId: string) => void;
+  updateTargetValue: (skillId: string, value: number | undefined) => void;
 }
 
 const DraggableSkillItem = ({ skill, index, targetValue, moveSkill, updateSkillInTemplate, removeSkillFromTemplate, updateTargetValue }: DraggableSkillItemProps) => {
   const [{ isDragging }, drag] = useDrag({
     type: 'skill',
-    item: { index, skill },
+    item: { index, id: skill.id },
     collect: (monitor) => ({
       isDragging: monitor.isDragging(),
     }),
@@ -34,7 +34,7 @@ const DraggableSkillItem = ({ skill, index, targetValue, moveSkill, updateSkillI
 
   const [, drop] = useDrop({
     accept: 'skill',
-    hover: (item: { index: number; skill: string }) => {
+    hover: (item: { index: number; id: string }) => {
       if (item.index !== index) {
         moveSkill(item.index, index);
         item.index = index;
@@ -55,8 +55,8 @@ const DraggableSkillItem = ({ skill, index, targetValue, moveSkill, updateSkillI
       </span>
       <input
         type="text"
-        value={skill}
-        onChange={(e) => updateSkillInTemplate(skill, e.target.value)}
+        value={skill.name}
+        onChange={(e) => updateSkillInTemplate(skill.id, e.target.value)}
         className="flex-1 bg-transparent border-none outline-none font-medium min-w-0 text-gray-900"
       />
       <div className="flex items-center gap-1 flex-shrink-0">
@@ -69,14 +69,14 @@ const DraggableSkillItem = ({ skill, index, targetValue, moveSkill, updateSkillI
           value={targetValue ?? ''}
           onChange={(e) => {
             const val = e.target.value;
-            updateTargetValue(skill, val === '' ? undefined : Math.min(5, Math.max(0, parseInt(val) || 0)));
+            updateTargetValue(skill.id, val === '' ? undefined : Math.min(5, Math.max(0, parseInt(val) || 0)));
           }}
           placeholder="-"
           className="w-12 px-2 py-1 text-center text-sm border border-[#ddd] rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
       </div>
       <button
-        onClick={() => removeSkillFromTemplate(skill)}
+        onClick={() => removeSkillFromTemplate(skill.id)}
         className="text-red-600 hover:text-red-700 p-2 rounded-[8px] hover:bg-red-50 cursor-pointer flex-shrink-0"
       >
         <X className="w-4 h-4" />
@@ -110,6 +110,15 @@ const DEFAULT_SKILLS = [
   'Selbstmotivation',
   'Verantwortlichkeit'
 ];
+
+const makeDefaultSkills = (): Skill[] =>
+  DEFAULT_SKILLS.map((name, i) => ({
+    id: `skill_${i}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    name,
+  }));
+
+const generateSkillId = (): string =>
+  `skill_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
 const DEFAULT_RATING_LEVELS = [
   {
@@ -161,7 +170,7 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [showExportMode, setShowExportMode] = useState(false);
   const [template, setTemplate] = useState<Template>({
-    skills: [...DEFAULT_SKILLS],
+    skills: makeDefaultSkills(),
     ratingLevels: [...DEFAULT_RATING_LEVELS],
   });
   const [newSkillName, setNewSkillName] = useState('');
@@ -752,12 +761,21 @@ export default function App() {
   const addSkillToTemplate = () => {
     if (!newSkillName.trim()) return;
 
+    const existingNames = new Set(template.skills.map(s => s.name.toLowerCase()));
+    const seen = new Set<string>();
+
     // Split by line breaks and process each line
-    const skillsToAdd = newSkillName
+    const skillsToAdd: Skill[] = newSkillName
       .split('\n')
-      .map(skill => skill.trim())
-      .filter(skill => skill.length > 0) // Remove empty lines
-      .filter(skill => !template.skills.includes(skill)); // Remove duplicates
+      .map(name => name.trim())
+      .filter(name => name.length > 0) // Remove empty lines
+      .filter(name => {
+        const lower = name.toLowerCase();
+        if (existingNames.has(lower) || seen.has(lower)) return false;
+        seen.add(lower);
+        return true;
+      })
+      .map(name => ({ id: generateSkillId(), name }));
 
     if (skillsToAdd.length > 0) {
       setTemplate({
@@ -768,31 +786,41 @@ export default function App() {
     }
   };
 
-  const removeSkillFromTemplate = (skill: string) => {
+  const removeSkillFromTemplate = (skillId: string) => {
     const newTargetValues = { ...template.targetValues };
-    delete newTargetValues[skill];
+    delete newTargetValues[skillId];
     setTemplate({
       ...template,
-      skills: template.skills.filter(s => s !== skill),
+      skills: template.skills.filter(s => s.id !== skillId),
       targetValues: Object.keys(newTargetValues).length > 0 ? newTargetValues : undefined
     });
+
+    // Remove the skill from each user's disabledSkills
+    setUsers(prevUsers => prevUsers.map(user => {
+      if (!user.disabledSkills || !user.disabledSkills.includes(skillId)) return user;
+      return { ...user, disabledSkills: user.disabledSkills.filter(id => id !== skillId) };
+    }));
+
+    // Remove the skill from each evaluation's skills map
+    setEvaluations(prevEvaluations => prevEvaluations.map(evalItem => {
+      if (!(skillId in evalItem.skills)) return evalItem;
+      const { [skillId]: _removed, ...rest } = evalItem.skills;
+      return { ...evalItem, skills: rest };
+    }));
   };
 
-  const updateSkillInTemplate = (oldSkill: string, newSkill: string) => {
-    if (newSkill.trim() && !template.skills.includes(newSkill.trim())) {
-      const trimmedNew = newSkill.trim();
-      const newTargetValues = { ...template.targetValues };
-      // Migrate target value to new skill name
-      if (newTargetValues[oldSkill] !== undefined) {
-        newTargetValues[trimmedNew] = newTargetValues[oldSkill];
-        delete newTargetValues[oldSkill];
-      }
-      setTemplate({
-        ...template,
-        skills: template.skills.map(s => s === oldSkill ? trimmedNew : s),
-        targetValues: Object.keys(newTargetValues).length > 0 ? newTargetValues : undefined
-      });
-    }
+  const updateSkillInTemplate = (skillId: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) return;
+    // Check duplicate by name (case-insensitive), excluding the skill being renamed
+    const isDuplicate = template.skills.some(
+      s => s.id !== skillId && s.name.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (isDuplicate) return;
+    setTemplate({
+      ...template,
+      skills: template.skills.map(s => s.id === skillId ? { ...s, name: trimmed } : s),
+    });
   };
 
   const moveSkill = (dragIndex: number, hoverIndex: number) => {
@@ -808,13 +836,13 @@ export default function App() {
     });
   };
 
-  const updateTargetValue = (skill: string, value: number | undefined) => {
+  const updateTargetValue = (skillId: string, value: number | undefined) => {
     setTemplate((prev: Template) => {
       const newTargetValues = { ...prev.targetValues };
       if (value === undefined) {
-        delete newTargetValues[skill];
+        delete newTargetValues[skillId];
       } else {
-        newTargetValues[skill] = value;
+        newTargetValues[skillId] = value;
       }
       return {
         ...prev,
@@ -846,18 +874,18 @@ export default function App() {
     setUsers(users.map(u => u.id === userId ? { ...u, name: newName } : u));
   };
 
-  const toggleUserSkill = (userId: string, skill: string) => {
+  const toggleUserSkill = (userId: string, skillId: string) => {
     setUsers(users.map(user => {
       if (user.id !== userId) return user;
-      
+
       const disabledSkills = user.disabledSkills || [];
-      const isDisabled = disabledSkills.includes(skill);
-      
+      const isDisabled = disabledSkills.includes(skillId);
+
       return {
         ...user,
         disabledSkills: isDisabled
-          ? disabledSkills.filter(s => s !== skill)
-          : [...disabledSkills, skill]
+          ? disabledSkills.filter(id => id !== skillId)
+          : [...disabledSkills, skillId]
       };
     }));
   };
@@ -867,29 +895,29 @@ export default function App() {
     return evaluations.find(e => e.evaluatorId === evaluatorId && e.evaluatedUserId === evaluatedUserId);
   };
 
-  const updateEvaluation = (evaluatorId: string, evaluatedUserId: string, skill: string, value: number) => {
+  const updateEvaluation = (evaluatorId: string, evaluatedUserId: string, skillId: string, value: number) => {
     // Mark user as interacting
     userInteractingRef.current = true;
     lastLocalUpdateRef.current = Date.now();
-    
+
     // Clear existing timer
     if (interactionTimerRef.current) {
       window.clearTimeout(interactionTimerRef.current);
     }
-    
+
     // Set timer to mark interaction as complete after 5 seconds of inactivity
     interactionTimerRef.current = window.setTimeout(() => {
       userInteractingRef.current = false;
     }, 5000);
-    
+
     const existingEval = getEvaluation(evaluatorId, evaluatedUserId);
-    
+
     let updatedEvaluations: Evaluation[];
-    
+
     if (existingEval) {
       updatedEvaluations = evaluations.map(e =>
         e.evaluatorId === evaluatorId && e.evaluatedUserId === evaluatedUserId
-          ? { ...e, skills: { ...e.skills, [skill]: value } }
+          ? { ...e, skills: { ...e.skills, [skillId]: value } }
           : e
       );
       setEvaluations(updatedEvaluations);
@@ -898,7 +926,7 @@ export default function App() {
       const newEval: Evaluation = {
         evaluatorId,
         evaluatedUserId,
-        skills: { [skill]: value }
+        skills: { [skillId]: value }
       };
       updatedEvaluations = [...evaluations, newEval];
       setEvaluations(updatedEvaluations);
@@ -926,11 +954,11 @@ export default function App() {
     const disabledSkills = evaluatedUser?.disabledSkills || [];
 
     // Only check enabled skills (filter out disabled ones)
-    const enabledSkills = template.skills.filter(skill => !disabledSkills.includes(skill));
+    const enabledSkills = template.skills.filter(skill => !disabledSkills.includes(skill.id));
 
     // Check if all enabled skills have a valid rating (defined and >= 0)
     return enabledSkills.length > 0 && enabledSkills.every(skill => {
-      const rating = evaluation.skills[skill];
+      const rating = evaluation.skills[skill.id];
       return rating !== undefined && rating >= 0;
     });
   };
@@ -954,30 +982,30 @@ export default function App() {
     }
   };
 
-  // Calculate average ratings for a user
+  // Calculate average ratings for a user (keyed by skill ID)
   const calculateAverageRatings = (evaluatedUserId: string) => {
     const userEvaluations = evaluations.filter(e => e.evaluatedUserId === evaluatedUserId);
-    
+
     if (userEvaluations.length === 0) return null;
 
     const averages: Record<string, number> = {};
-    
+
     template.skills.forEach(skill => {
       const ratings = userEvaluations
-        .map(e => e.skills[skill] ?? 0)
+        .map(e => e.skills[skill.id] ?? 0)
         .filter(rating => rating > 0); // Exclude 0 (abstain) from average
-      
+
       if (ratings.length > 0) {
-        averages[skill] = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
+        averages[skill.id] = ratings.reduce((sum, rating) => sum + rating, 0) / ratings.length;
       } else {
-        averages[skill] = 0; // No valid ratings
+        averages[skill.id] = 0; // No valid ratings
       }
     });
 
     return averages;
   };
 
-  // Calculate ratings separately for self-evaluation and others
+  // Calculate ratings separately for self-evaluation and others (keyed by skill ID)
   const calculateSeparateRatings = (evaluatedUserId: string) => {
     const selfEvaluation = evaluations.find(e => e.evaluatedUserId === evaluatedUserId && e.evaluatorId === evaluatedUserId);
     const otherEvaluations = evaluations.filter(e => e.evaluatedUserId === evaluatedUserId && e.evaluatorId !== evaluatedUserId);
@@ -988,19 +1016,19 @@ export default function App() {
     template.skills.forEach(skill => {
       // Self rating
       if (selfEvaluation) {
-        const rating = selfEvaluation.skills[skill];
-        selfRatings[skill] = (rating !== undefined && rating > 0) ? rating : 0;
+        const rating = selfEvaluation.skills[skill.id];
+        selfRatings[skill.id] = (rating !== undefined && rating > 0) ? rating : 0;
       }
 
       // Others average
       const otherRatings = otherEvaluations
-        .map(e => e.skills[skill] ?? 0)
+        .map(e => e.skills[skill.id] ?? 0)
         .filter(rating => rating > 0);
 
       if (otherRatings.length > 0) {
-        othersAverages[skill] = otherRatings.reduce((sum, rating) => sum + rating, 0) / otherRatings.length;
+        othersAverages[skill.id] = otherRatings.reduce((sum, rating) => sum + rating, 0) / otherRatings.length;
       } else {
-        othersAverages[skill] = 0;
+        othersAverages[skill.id] = 0;
       }
     });
 
@@ -1017,11 +1045,12 @@ export default function App() {
       const { selfRatings, othersAverages } = calculateSeparateRatings(evaluatedUserId);
 
       return template.skills.map(skill => ({
-        skill,
-        selfEvaluation: Math.round(selfRatings[skill] || 0),
-        othersAverage: Math.round(othersAverages[skill] || 0),
-        isDisabled: disabledSkills.includes(skill),
-        target: template.targetValues?.[skill]
+        skill: skill.name,
+        skillId: skill.id,
+        selfEvaluation: Math.round(selfRatings[skill.id] || 0),
+        othersAverage: Math.round(othersAverages[skill.id] || 0),
+        isDisabled: disabledSkills.includes(skill.id),
+        target: template.targetValues?.[skill.id]
       }));
     } else {
       // Combined average (original behavior)
@@ -1029,10 +1058,11 @@ export default function App() {
       if (!averages) return [];
 
       return template.skills.map(skill => ({
-        skill,
-        average: Math.round(averages[skill] || 0),
-        isDisabled: disabledSkills.includes(skill),
-        target: template.targetValues?.[skill]
+        skill: skill.name,
+        skillId: skill.id,
+        average: Math.round(averages[skill.id] || 0),
+        isDisabled: disabledSkills.includes(skill.id),
+        target: template.targetValues?.[skill.id]
       }));
     }
   };
@@ -1041,8 +1071,9 @@ export default function App() {
   const prepareGlobalChartData = () => {
     // Start with the skill names and target values
     const chartData = template.skills.map(skill => ({
-      skill,
-      target: template.targetValues?.[skill]
+      skill: skill.name,
+      skillId: skill.id,
+      target: template.targetValues?.[skill.id]
     } as any));
 
     // Add each user's average as a separate key
@@ -1050,7 +1081,7 @@ export default function App() {
       const averages = calculateAverageRatings(user.id);
       if (averages) {
         chartData.forEach((dataPoint) => {
-          dataPoint[user.name] = Math.round(averages[dataPoint.skill] || 0);
+          dataPoint[user.name] = Math.round(averages[dataPoint.skillId] || 0);
         });
       }
     });
@@ -1858,13 +1889,13 @@ export default function App() {
 
                 <div className="space-y-3 lg:space-y-4">
                   {template.skills.map((skill) => {
-                    const isDisabled = currentEvaluated?.disabledSkills?.includes(skill) || false;
-                    const value = currentEvaluation?.skills[skill] ?? 0;
+                    const isDisabled = currentEvaluated?.disabledSkills?.includes(skill.id) || false;
+                    const value = currentEvaluation?.skills[skill.id] ?? 0;
                     return (
-                      <div key={skill} className={`bg-white p-4 lg:p-6 rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] ${isDisabled ? 'opacity-50' : ''}`}>
+                      <div key={skill.id} className={`bg-white p-4 lg:p-6 rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] ${isDisabled ? 'opacity-50' : ''}`}>
                         <div className="flex items-center justify-between mb-3">
                           <label className={`font-medium ${isDisabled ? 'text-gray-400' : 'text-gray-700'}`}>
-                            {skill}
+                            {skill.name}
                             {isDisabled}
                           </label>
                           {!isDisabled && (
@@ -1882,7 +1913,7 @@ export default function App() {
                           onChange={(e) => updateEvaluation(
                             currentEvaluatorId,
                             currentEvaluatedId,
-                            skill,
+                            skill.id,
                             parseInt(e.target.value)
                           )}
                           disabled={isDisabled}
@@ -2412,24 +2443,25 @@ export default function App() {
                     const skillAverages = template.skills.map(skill => {
                       let totalRating = 0;
                       let count = 0;
-                      
+
                       users.forEach(user => {
                         // Skip if skill is disabled for this user
-                        if (user.disabledSkills?.includes(skill)) return;
-                        
+                        if (user.disabledSkills?.includes(skill.id)) return;
+
                         const userEvaluations = evaluations.filter(e => e.evaluatedUserId === user.id);
                         userEvaluations.forEach(evaluation => {
-                          const rating = evaluation.skills[skill];
+                          const rating = evaluation.skills[skill.id];
                           if (rating !== undefined && rating > 0) { // Exclude 0 (abstain) from average
                             totalRating += rating;
                             count++;
                           }
                         });
                       });
-                      
+
                       const average = count > 0 ? totalRating / count : 0;
                       return {
-                        skill,
+                        skillId: skill.id,
+                        skillName: skill.name,
                         average,
                         count,
                         roundedAverage: Math.round(average)
@@ -2456,8 +2488,8 @@ export default function App() {
                     };
                     
                     return sortedSkills.map((item, index) => (
-                      <div 
-                        key={item.skill}
+                      <div
+                        key={item.skillId}
                         className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors p-3 lg:pt-[16px] lg:pr-[24px] lg:pb-[16px] lg:pl-[16px]"
                       >
                         <div className="flex items-center gap-3 lg:gap-4 min-w-0">
@@ -2468,10 +2500,10 @@ export default function App() {
                           }}>
                             {index + 1}
                           </div>
-                          
+
                           {/* Skill Name */}
                           <div className="flex-1 min-w-0 lg:w-48 lg:flex-shrink-0">
-                            <h4 className="font-medium text-gray-900 truncate">{item.skill}</h4>
+                            <h4 className="font-medium text-gray-900 truncate">{item.skillName}</h4>
                             <p className="text-xs text-gray-500 truncate">
                               {item.count} Evaluation{item.count !== 1 ? 'en' : ''}
                             </p>
@@ -2702,10 +2734,10 @@ export default function App() {
                     <div className="space-y-2">
                       {template.skills.map((skill, index) => (
                         <DraggableSkillItem
-                          key={skill}
+                          key={skill.id}
                           skill={skill}
                           index={index}
-                          targetValue={template.targetValues?.[skill]}
+                          targetValue={template.targetValues?.[skill.id]}
                           moveSkill={moveSkill}
                           updateSkillInTemplate={updateSkillInTemplate}
                           removeSkillFromTemplate={removeSkillFromTemplate}
@@ -2809,10 +2841,10 @@ export default function App() {
                                 </p>
                                 <div className="space-y-2">
                                   {template.skills.map((skill) => {
-                                    const isDisabled = disabledSkills.includes(skill);
+                                    const isDisabled = disabledSkills.includes(skill.id);
                                     return (
                                       <label
-                                        key={skill}
+                                        key={skill.id}
                                         className={`flex items-center gap-2 p-3 rounded-lg cursor-pointer transition border ${
                                           isDisabled ? 'bg-gray-100 border-gray-200' : 'bg-white border-[#ddd] hover:shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)]'
                                         }`}
@@ -2820,11 +2852,11 @@ export default function App() {
                                         <input
                                           type="checkbox"
                                           checked={!isDisabled}
-                                          onChange={() => toggleUserSkill(user.id, skill)}
+                                          onChange={() => toggleUserSkill(user.id, skill.id)}
                                           className="w-4 h-4 rounded"
                                         />
                                         <span className={`text-sm ${isDisabled ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                                          {skill}
+                                          {skill.name}
                                         </span>
                                       </label>
                                     );

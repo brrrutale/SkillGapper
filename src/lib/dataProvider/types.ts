@@ -10,13 +10,18 @@ export interface User {
   id: string;
   name: string;
   color: string;
-  disabledSkills?: string[];
+  disabledSkills?: string[]; // skill IDs
+}
+
+export interface Skill {
+  id: string;
+  name: string;
 }
 
 export interface Evaluation {
   evaluatorId: string;
   evaluatedUserId: string;
-  skills: Record<string, number>;
+  skills: Record<string, number>; // keyed by skill ID
 }
 
 export interface RatingLevel {
@@ -26,8 +31,8 @@ export interface RatingLevel {
 }
 
 export interface Template {
-  skills: string[];
-  targetValues?: Record<string, number>;
+  skills: Skill[];
+  targetValues?: Record<string, number>; // keyed by skill ID
   ratingLevels?: RatingLevel[];
 }
 

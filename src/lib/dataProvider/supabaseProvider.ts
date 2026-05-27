@@ -15,7 +15,7 @@ interface SupabaseProject {
 interface SupabaseTemplate {
   id: string;
   project_id: string;
-  skills: string[];
+  skills: Array<{ id: string; name: string }>;
   target_values: Record<string, number> | null;
   rating_levels: Array<{ level: number; title: string; description: string }> | null;
 }
