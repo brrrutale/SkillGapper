@@ -15,6 +15,22 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Stabile Output-Dateinamen ohne Content-Hash — beim FTP-Deployment
+  // einfach immer dieselben 4 Files ueberschreiben. Cache-Busting muss
+  // Akamai (max-age) bzw. ein Hard-Reload uebernehmen.
+  build: {
+    rollupOptions: {
+      output: {
+        entryFileNames: 'assets/index.js',
+        chunkFileNames: 'assets/[name].js',
+        assetFileNames: assetInfo => {
+          const name = assetInfo.name || '';
+          if (name.endsWith('.css')) return 'assets/index.css';
+          return 'assets/[name][extname]';
+        },
+      },
+    },
+  },
   server: {
     // Proxy für API-Anfragen während der Entwicklung
     // Leitet /api/* Anfragen an MAMP weiter
