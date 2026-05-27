@@ -2145,9 +2145,7 @@ export default function App() {
                                 overlapping polygons don't swallow hover events. */}
                             {isSeparate ? (
                               <>
-                                {/* Self-evaluation line — always blue, no tooltip
-                                    (reference shape only; users compare against the green
-                                    Fremdevaluation polygon). */}
+                                {/* Self-evaluation line — always blue, hoverable */}
                                 {hasSelfEvaluation && (
                                   <Radar
                                     name="Selbstevaluation"
@@ -2157,9 +2155,21 @@ export default function App() {
                                     fillOpacity={0.2}
                                     strokeWidth={2}
                                     isAnimationActive={false}
-                                    style={{ pointerEvents: 'none' }}
-                                    dot={false}
-                                    activeDot={false}
+                                    onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
+                                    onMouseLeave={() => setHoveredRadarName(null)}
+                                    dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                                      <circle
+                                        key={props.index}
+                                        cx={props.cx}
+                                        cy={props.cy}
+                                        r={10}
+                                        fill="transparent"
+                                        style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                        onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
+                                        onMouseLeave={() => setHoveredRadarName(null)}
+                                      />
+                                    )}
+                                    activeDot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2, style: { pointerEvents: 'none' } }}
                                   />
                                 )}
                                 {/* Others average line — always green, hoverable */}
@@ -2171,6 +2181,7 @@ export default function App() {
                                     fill="#10B981"
                                     fillOpacity={0.2}
                                     strokeWidth={2}
+                                    isAnimationActive={false}
                                     onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
                                     onMouseLeave={() => setHoveredRadarName(null)}
                                     dot={(props: { cx?: number; cy?: number; index?: number }) => (
@@ -2246,9 +2257,45 @@ export default function App() {
                                 }
                                 const entry = payload.find(p => p.name === hoveredRadarName);
                                 if (!entry) return null;
-                                // Per-evaluator breakdown for Fremdevaluation
-                                if (hoveredRadarName === 'Fremdevaluation' && showIndividualEvaluations) {
-                                  const breakdown: Array<{ evaluatorName: string; color: string; rating: number }> = data.individualOtherRatings || [];
+                                // When hovering Selbst or Fremd and both lines share the same
+                                // value at this skill (so the vertices overlap), merge them.
+                                const isSelbstOrFremd = hoveredRadarName === 'Selbstevaluation' || hoveredRadarName === 'Fremdevaluation';
+                                const selfVal = data.selfEvaluation;
+                                const otherVal = data.othersAverage;
+                                const showBreakdown = showIndividualEvaluations;
+                                const breakdown: Array<{ evaluatorName: string; color: string; rating: number }> = data.individualOtherRatings || [];
+                                const isMerged = isSelbstOrFremd && hasSelfEvaluation && hasOtherEvaluations && selfVal === otherVal && selfVal > 0;
+                                if (isMerged) {
+                                  return (
+                                    <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                                      <p className="font-medium">{data.skill}</p>
+                                      <p className="text-sm font-medium mt-1 text-gray-700">
+                                        Selbst- &amp; Fremdevaluation: {selfVal}
+                                      </p>
+                                      <div className="mt-1 flex items-center gap-3 text-xs text-gray-600">
+                                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#3B82F6' }} />Selbst</span>
+                                        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: '#10B981' }} />Fremd (Ø)</span>
+                                      </div>
+                                      {showBreakdown && (
+                                        breakdown.length === 0 ? (
+                                          <p className="text-xs text-gray-500 mt-2">Noch keine Fremdevaluationen</p>
+                                        ) : (
+                                          <div className="mt-2 pt-2 border-t border-gray-100 space-y-0.5">
+                                            {breakdown.map((b, i) => (
+                                              <div key={i} className="flex items-center gap-2 text-xs">
+                                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color }} />
+                                                <span className="text-gray-700">{b.evaluatorName}:</span>
+                                                <span className="font-medium">{b.rating}</span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  );
+                                }
+                                // Per-evaluator breakdown for Fremdevaluation (non-merged)
+                                if (hoveredRadarName === 'Fremdevaluation' && showBreakdown) {
                                   return (
                                     <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
                                       <p className="font-medium">{data.skill}</p>
