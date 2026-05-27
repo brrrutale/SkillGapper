@@ -182,6 +182,7 @@ export default function App() {
   const [currentEvaluatorId, setCurrentEvaluatorId] = useState<string | null>(null);
   const [currentEvaluatedId, setCurrentEvaluatedId] = useState<string | null>(null);
   const [hoveredRadarName, setHoveredRadarName] = useState<string | null>(null);
+  const [showIndividualEvaluations, setShowIndividualEvaluations] = useState(false);
   const [loading, setLoading] = useState(true);
   const [evaluationSaveStatus, setEvaluationSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isOnline, setIsOnline] = useState(true);
@@ -313,6 +314,12 @@ export default function App() {
     }
   }, [currentEvaluatedId, currentProject]);
 
+  // Persist showIndividualEvaluations per project
+  useEffect(() => {
+    if (!currentProject) return;
+    localStorage.setItem(`showIndividualEvaluations:${currentProject.id}`, showIndividualEvaluations ? '1' : '0');
+  }, [showIndividualEvaluations, currentProject]);
+
   // Save resultsView to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('lastResultsView', resultsView);
@@ -380,6 +387,8 @@ export default function App() {
           const lastEvaluatorId = localStorage.getItem(`lastEvaluatorId:${currentProject.id}`);
           const lastEvaluatedId = localStorage.getItem(`lastEvaluatedId:${currentProject.id}`);
           const lastResultsView = localStorage.getItem('lastResultsView') as 'individual' | 'global' | null;
+          const lastShowIndividual = localStorage.getItem(`showIndividualEvaluations:${currentProject.id}`);
+          setShowIndividualEvaluations(lastShowIndividual === '1');
 
           if (lastEvaluatorId && usersData?.some(u => u.id === lastEvaluatorId)) {
             setCurrentEvaluatorId(lastEvaluatorId);
@@ -1013,6 +1022,9 @@ export default function App() {
 
     const selfRatings: Record<string, number> = {};
     const othersAverages: Record<string, number> = {};
+    // Individual non-self ratings per skill (skip 0 / missing so the breakdown
+    // only shows people who actually rated)
+    const individualOtherRatings: Record<string, Array<{ evaluatorId: string; evaluatorName: string; color: string; rating: number }>> = {};
 
     template.skills.forEach(skill => {
       // Self rating
@@ -1031,9 +1043,20 @@ export default function App() {
       } else {
         othersAverages[skill.id] = 0;
       }
+
+      // Per-evaluator breakdown for this skill
+      individualOtherRatings[skill.id] = otherEvaluations
+        .map(e => {
+          const rating = e.skills[skill.id];
+          if (rating === undefined || rating <= 0) return null;
+          const evaluator = users.find(u => u.id === e.evaluatorId);
+          if (!evaluator) return null;
+          return { evaluatorId: evaluator.id, evaluatorName: evaluator.name, color: evaluator.color, rating };
+        })
+        .filter((x): x is { evaluatorId: string; evaluatorName: string; color: string; rating: number } => x !== null);
     });
 
-    return { selfRatings, othersAverages, hasSelfEvaluation: !!selfEvaluation, hasOtherEvaluations: otherEvaluations.length > 0 };
+    return { selfRatings, othersAverages, individualOtherRatings, hasSelfEvaluation: !!selfEvaluation, hasOtherEvaluations: otherEvaluations.length > 0 };
   };
 
   // Prepare chart data for results
@@ -1043,13 +1066,14 @@ export default function App() {
 
     if (separateSelf) {
       // Separate self-evaluation from others
-      const { selfRatings, othersAverages } = calculateSeparateRatings(evaluatedUserId);
+      const { selfRatings, othersAverages, individualOtherRatings } = calculateSeparateRatings(evaluatedUserId);
 
       return template.skills.map(skill => ({
         skill: skill.name,
         skillId: skill.id,
         selfEvaluation: Math.round(selfRatings[skill.id] || 0),
         othersAverage: Math.round(othersAverages[skill.id] || 0),
+        individualOtherRatings: individualOtherRatings[skill.id] || [],
         isDisabled: disabledSkills.includes(skill.id),
         target: template.targetValues?.[skill.id]
       }));
@@ -2196,6 +2220,31 @@ export default function App() {
                                 }
                                 const entry = payload.find(p => p.name === hoveredRadarName);
                                 if (!entry) return null;
+                                // Per-evaluator breakdown for Fremdevaluation
+                                if (hoveredRadarName === 'Fremdevaluation' && showIndividualEvaluations) {
+                                  const breakdown: Array<{ evaluatorName: string; color: string; rating: number }> = data.individualOtherRatings || [];
+                                  return (
+                                    <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                                      <p className="font-medium">{data.skill}</p>
+                                      <p className="text-sm font-medium mt-1" style={{ color: entry.color }}>
+                                        Fremdevaluation (Ø {entry.value})
+                                      </p>
+                                      {breakdown.length === 0 ? (
+                                        <p className="text-xs text-gray-500 mt-1">Noch keine Fremdevaluationen</p>
+                                      ) : (
+                                        <div className="mt-1 space-y-0.5">
+                                          {breakdown.map((b, i) => (
+                                            <div key={i} className="flex items-center gap-2 text-xs">
+                                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: b.color }} />
+                                              <span className="text-gray-700">{b.evaluatorName}:</span>
+                                              <span className="font-medium">{b.rating}</span>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                }
                                 return (
                                   <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
                                     <p className="font-medium">{data.skill}</p>
@@ -2866,6 +2915,30 @@ export default function App() {
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Display Options Section */}
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="text-lg font-medium mb-2 lg:mb-4">Anzeige-Optionen</h3>
+                      <p className="text-sm text-gray-600 mb-4">
+                        Einstellungen für die Darstellung der Ergebnisse.
+                      </p>
+                    </div>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => setShowIndividualEvaluations(v => !v)}
+                        aria-pressed={showIndividualEvaluations}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 mt-0.5 ${showIndividualEvaluations ? 'bg-blue-600' : 'bg-gray-300'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showIndividualEvaluations ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                      <span className="text-sm">
+                        <span className="font-medium block">Fremdevaluation aufschlüsseln</span>
+                        <span className="text-gray-600">Im Ergebnis-Chart-Tooltip die einzelnen Evaluationen jeder Person anzeigen, nicht nur den Durchschnitt.</span>
+                      </span>
+                    </label>
                   </div>
 
                   {/* Rating Levels Section */}
