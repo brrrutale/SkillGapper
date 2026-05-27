@@ -2,23 +2,11 @@
 /**
  * Skill Gap Tool - PHP Backend API
  *
- * Einfache REST API die JSON-Dateien als Datenspeicher nutzt.
- * Kann später durch eine Datenbank ersetzt werden.
- *
- * Endpoints:
- * GET    /api/projects              - Liste aller Projekte
- * POST   /api/projects              - Neues Projekt erstellen (mit optionalem Passwort)
- * DELETE /api/projects/{id}         - Projekt löschen
- * POST   /api/projects/{id}/validate-password - Passwort validieren
- * GET    /api/projects/{id}/template    - Template laden
- * POST   /api/projects/{id}/template    - Template speichern
- * GET    /api/projects/{id}/users       - Users laden
- * POST   /api/projects/{id}/users       - Users speichern
- * GET    /api/projects/{id}/evaluations - Evaluations laden
- * POST   /api/projects/{id}/evaluations - Evaluations speichern
+ * REST API die JSON-Dateien als Datenspeicher nutzt.
+ * Unterstützt sowohl URL-Rewriting (/api/projects) als auch Query-Parameter (/api/index.php?route=projects)
  */
 
-// CORS Headers für lokale Entwicklung
+// CORS Headers
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
@@ -52,12 +40,11 @@ function getJsonInput() {
 function ensureDataDir() {
     if (!is_dir(DATA_DIR)) {
         if (!mkdir(DATA_DIR, 0755, true)) {
-            errorResponse('Could not create data directory. Please ensure the server has write permissions for: ' . dirname(DATA_DIR), 500);
+            errorResponse('Could not create data directory', 500);
         }
     }
-    // Check if directory is writable
     if (!is_writable(DATA_DIR)) {
-        errorResponse('Data directory is not writable. Please set write permissions (chmod 755) for: ' . DATA_DIR, 500);
+        errorResponse('Data directory is not writable', 500);
     }
 }
 
@@ -85,16 +72,22 @@ function generateId() {
     return bin2hex(random_bytes(8));
 }
 
-// URL-Pfad parsen
-$requestUri = $_SERVER['REQUEST_URI'];
-$path = parse_url($requestUri, PHP_URL_PATH);
+// Route ermitteln - unterstützt beide Varianten:
+// 1. Query-Parameter: ?route=projects/123/template
+// 2. URL-Rewriting: /api/projects/123/template
+$path = '';
 
-// Finde den /api/ Teil im Pfad und extrahiere alles danach
-// Dies funktioniert unabhängig vom Basis-Verzeichnis (z.B. /SkillGapTool/api/projects)
-if (preg_match('#/api(/.*)?$#', $path, $matches)) {
-    $path = $matches[1] ?? '';
+if (isset($_GET['route'])) {
+    // Query-Parameter Variante
+    $path = $_GET['route'];
 } else {
-    $path = '';
+    // URL-Rewriting Variante
+    $requestUri = $_SERVER['REQUEST_URI'];
+    $parsedPath = parse_url($requestUri, PHP_URL_PATH);
+
+    if (preg_match('#/api(/.*)?$#', $parsedPath, $matches)) {
+        $path = $matches[1] ?? '';
+    }
 }
 
 $path = trim($path, '/');
@@ -114,7 +107,6 @@ try {
             if (file_exists($projectFile)) {
                 $project = readJsonFile($projectFile);
                 if ($project) {
-                    // Don't send password to frontend, only hasPassword flag
                     $hasPassword = !empty($project['password']);
                     unset($project['password']);
                     $project['hasPassword'] = $hasPassword;
@@ -122,7 +114,6 @@ try {
                 }
             }
         }
-        // Sortiere nach Erstellungsdatum (neueste zuerst)
         usort($projects, function($a, $b) {
             return strcmp($b['createdAt'] ?? '', $a['createdAt'] ?? '');
         });
@@ -146,7 +137,6 @@ try {
             'createdAt' => date('c'),
         ];
 
-        // Store password if provided
         if (!empty($password)) {
             $project['password'] = $password;
         }
@@ -154,7 +144,6 @@ try {
         $projectDir = getProjectDir($id);
         writeJsonFile($projectDir . '/project.json', $project);
 
-        // Return project without password
         $responseProject = $project;
         unset($responseProject['password']);
         $responseProject['hasPassword'] = !empty($password);
@@ -162,7 +151,7 @@ try {
         jsonResponse($responseProject, 201);
     }
 
-    // POST /projects/{id}/validate-password - Passwort validieren
+    // POST /projects/{id}/validate-password
     if ($method === 'POST' && count($segments) === 3 && $segments[0] === 'projects' && $segments[2] === 'validate-password') {
         $projectId = $segments[1];
         $projectDir = getProjectDir($projectId);
@@ -181,7 +170,7 @@ try {
         jsonResponse(['valid' => $valid]);
     }
 
-    // DELETE /projects/{id} - Projekt löschen
+    // DELETE /projects/{id}
     if ($method === 'DELETE' && count($segments) === 2 && $segments[0] === 'projects') {
         $projectId = $segments[1];
         $projectDir = getProjectDir($projectId);
@@ -190,12 +179,8 @@ try {
             errorResponse('Project not found', 404);
         }
 
-        // Rekursive Funktion zum Löschen eines Verzeichnisses mit allem Inhalt
         function deleteDirectory($dir) {
-            if (!is_dir($dir)) {
-                return false;
-            }
-            // Hole alle Dateien und Verzeichnisse, inkl. versteckte (ausser . und ..)
+            if (!is_dir($dir)) return false;
             $items = array_diff(scandir($dir), ['.', '..']);
             foreach ($items as $item) {
                 $path = $dir . '/' . $item;
@@ -208,9 +193,7 @@ try {
             return rmdir($dir);
         }
 
-        // Lösche das komplette Projektverzeichnis mit allen Daten
         deleteDirectory($projectDir);
-
         jsonResponse(['success' => true]);
     }
 
@@ -238,7 +221,6 @@ try {
 
         $template = getJsonInput();
         writeJsonFile($projectDir . '/template.json', $template);
-
         jsonResponse(['success' => true]);
     }
 
@@ -266,7 +248,6 @@ try {
 
         $users = getJsonInput();
         writeJsonFile($projectDir . '/users.json', $users);
-
         jsonResponse(['success' => true]);
     }
 
@@ -294,7 +275,6 @@ try {
 
         $evaluations = getJsonInput();
         writeJsonFile($projectDir . '/evaluations.json', $evaluations);
-
         jsonResponse(['success' => true]);
     }
 
