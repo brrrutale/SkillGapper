@@ -1533,7 +1533,7 @@ export default function App() {
               <HomeIcon className="w-5 h-5 lg:w-7 lg:h-7" />
             </button>
             <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
-              <h1 className="text-lg lg:text-2xl font-bold text-[#202020] leading-none truncate">SkillGapper</h1>
+              <h1 className="text-base lg:text-xl font-bold text-[#202020] leading-none truncate">SkillGapper</h1>
               <p className="text-xs lg:text-sm text-[#4a5565] leading-none truncate">{currentProject.name}</p>
             </div>
           </div>
