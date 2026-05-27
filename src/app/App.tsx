@@ -2208,6 +2208,7 @@ export default function App() {
                                 fill={user.color}
                                 fillOpacity={0.3}
                                 strokeWidth={2}
+                                isAnimationActive={false}
                                 onMouseEnter={() => setHoveredRadarName(user.name)}
                                 onMouseLeave={() => setHoveredRadarName(null)}
                                 dot={(props: { cx?: number; cy?: number; index?: number }) => (
@@ -2408,7 +2409,7 @@ export default function App() {
               </>
             ) : (
               // Global View - All users overlaid on one chart
-              <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6 max-w-5xl mx-auto">
+              <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6">
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-medium">Alle User*innen</h3>
@@ -2440,9 +2441,9 @@ export default function App() {
                   </div>
                 </div>
 
-                <div id="global-chart" className="h-[450px] lg:h-[650px]" style={{ backgroundColor: '#ffffff' }}>
+                <div id="global-chart" className="h-[300px] lg:h-[650px]" style={{ backgroundColor: '#ffffff' }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={prepareGlobalChartData()} margin={{ top: window.innerWidth < 1024 ? -10 : 120, right: window.innerWidth < 1024 ? 60 : 120, bottom: window.innerWidth < 1024 ? -10 : 120, left: window.innerWidth < 1024 ? 60 : 120 }}>
+                    <RadarChart data={prepareGlobalChartData()} margin={{ top: window.innerWidth < 1024 ? -10 : 10, right: window.innerWidth < 1024 ? 60 : 120, bottom: window.innerWidth < 1024 ? -10 : 10, left: window.innerWidth < 1024 ? 60 : 120 }}>
                       <PolarGrid />
                       <PolarAngleAxis
                         dataKey="skill"
@@ -2508,6 +2509,7 @@ export default function App() {
                             fill={user.color}
                             fillOpacity={0.15}
                             strokeWidth={2}
+                            isAnimationActive={false}
                             onMouseEnter={() => setHoveredRadarName(user.name)}
                             onMouseLeave={() => setHoveredRadarName(null)}
                             dot={(props: { cx?: number; cy?: number; index?: number }) => (
@@ -2570,7 +2572,7 @@ export default function App() {
 
             {/* Skills Ranking Section - Separate from chart */}
             {resultsView === 'global' && users.length > 0 && evaluations.length > 0 && (
-              <div className="mt-8 bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6 max-w-5xl mx-auto">
+              <div className="mt-8 bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6">
                 <h3 className="text-xl font-medium mb-4">Skill-Ranking</h3>
                 <p className="text-sm text-gray-600 mb-6">
                   Diese Rangliste zeigt alle Skills sortiert nach dem durchschnittlichen Team-Level. Sie hilft dir, Stärken und Entwicklungsbereiche im Team zu identifizieren.
