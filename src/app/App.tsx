@@ -1234,7 +1234,7 @@ export default function App() {
 
       // Add title
       pdf.setFontSize(18);
-      pdf.text('Skill-Gap Analyse - Alle User*innen', margin, margin + 5);
+      pdf.text('Skill-Gap Analyse - Alle User', margin, margin + 5);
 
       // Add project name
       if (currentProject) {
@@ -1427,7 +1427,7 @@ export default function App() {
 
           // Add title (centered)
           pdf.setFontSize(18);
-          pdf.text('Skill-Gap Analyse - Alle User*innen', pageWidth / 2, margin + 5, { align: 'center' });
+          pdf.text('Skill-Gap Analyse - Alle User', pageWidth / 2, margin + 5, { align: 'center' });
 
           // Add project name (centered)
           let headerHeight = margin + 12;
@@ -2412,7 +2412,7 @@ export default function App() {
               <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6">
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-medium">Alle User*innen</h3>
+                    <h3 className="text-xl font-medium">Alle User</h3>
                     <button
                       onClick={exportGlobalChartToPDF}
                       disabled={isExporting}
@@ -2738,14 +2738,14 @@ export default function App() {
                   />
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-gray-600" />
-                    <span className="font-medium">Globale Übersicht (alle User*innen)</span>
+                    <span className="font-medium">Globale Übersicht (alle User)</span>
                   </div>
                 </label>
               </div>
 
               {/* Individual Users */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Einzelne User*innen ({users.length})</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Einzelne User ({users.length})</h3>
                 <div className="space-y-2">
                   {users.map(user => {
                     const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
