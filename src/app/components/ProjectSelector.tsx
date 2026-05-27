@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { FolderOpen, Plus, Trash2, Edit2, Check, X, Lock, Eye, EyeOff, Search } from 'lucide-react';
+import { Plus, Trash2, Edit2, Check, X, Lock, Eye, EyeOff, Search } from 'lucide-react';
+import { KroteIcon } from './icons/KroteIcon';
 
 interface Project {
   id: string;
@@ -122,7 +123,7 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
       <div className="flex-1 flex items-center justify-center p-4">
         <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-8 max-w-2xl w-full">
           <div className="text-center mb-8">
-            <FolderOpen className="w-16 h-16 text-blue-600 mx-auto mb-4" />
+            <KroteIcon className="w-16 h-16 text-blue-600 mx-auto mb-4" />
             <h1 className="text-[30px] font-bold text-gray-900 mb-2 tracking-[0]">SkillGapper</h1>
             <p className="text-[16px] font-medium text-[#565656] tracking-[0]">Wähle ein Projekt oder erstelle ein neues</p>
           </div>
