@@ -2233,7 +2233,9 @@ export default function App() {
                                 activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
                               />
                             )}
-                            {/* Target value line - only show if any target values are set */}
+                            {/* Target value line - only show if any target values are set.
+                                Zielwert has no hover interaction by design — it's a
+                                reference line, no tooltip needed. */}
                             {chartData.some(d => d.target !== undefined) && (
                               <Radar
                                 name="Zielwert"
@@ -2242,21 +2244,10 @@ export default function App() {
                                 fill="transparent"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
-                                onMouseEnter={() => setHoveredRadarName('Zielwert')}
-                                onMouseLeave={() => setHoveredRadarName(null)}
-                                dot={(props: { cx?: number; cy?: number; index?: number }) => (
-                                  <circle
-                                    key={props.index}
-                                    cx={props.cx}
-                                    cy={props.cy}
-                                    r={10}
-                                    fill="transparent"
-                                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
-                                    onMouseEnter={() => setHoveredRadarName('Zielwert')}
-                                    onMouseLeave={() => setHoveredRadarName(null)}
-                                  />
-                                )}
-                                activeDot={{ r: 4, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
+                                isAnimationActive={false}
+                                style={{ pointerEvents: 'none' }}
+                                dot={false}
+                                activeDot={false}
                               />
                             )}
                             <Tooltip
@@ -2503,7 +2494,7 @@ export default function App() {
                           />
                         );
                       })}
-                      {/* Target value line - only show if any target values are set */}
+                      {/* Target value line - reference only, no hover interaction */}
                       {prepareGlobalChartData().some(d => d.target !== undefined) && (
                         <Radar
                           name="Zielwert"
@@ -2512,21 +2503,10 @@ export default function App() {
                           fill="transparent"
                           strokeWidth={2}
                           strokeDasharray="5 5"
-                          onMouseEnter={() => setHoveredRadarName('Zielwert')}
-                          onMouseLeave={() => setHoveredRadarName(null)}
-                          dot={(props: { cx?: number; cy?: number; index?: number }) => (
-                            <circle
-                              key={props.index}
-                              cx={props.cx}
-                              cy={props.cy}
-                              r={10}
-                              fill="transparent"
-                              style={{ pointerEvents: 'all', cursor: 'pointer' }}
-                              onMouseEnter={() => setHoveredRadarName('Zielwert')}
-                              onMouseLeave={() => setHoveredRadarName(null)}
-                            />
-                          )}
-                          activeDot={{ r: 4, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
+                          isAnimationActive={false}
+                          style={{ pointerEvents: 'none' }}
+                          dot={false}
+                          activeDot={false}
                         />
                       )}
                       <Tooltip
