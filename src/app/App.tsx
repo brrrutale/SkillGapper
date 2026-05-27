@@ -181,6 +181,7 @@ export default function App() {
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
   const [currentEvaluatorId, setCurrentEvaluatorId] = useState<string | null>(null);
   const [currentEvaluatedId, setCurrentEvaluatedId] = useState<string | null>(null);
+  const [hoveredRadarName, setHoveredRadarName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [evaluationSaveStatus, setEvaluationSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isOnline, setIsOnline] = useState(true);
@@ -2140,6 +2141,8 @@ export default function App() {
                                   fill="#3B82F6"
                                   fillOpacity={0.2}
                                   strokeWidth={2}
+                                  onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
+                                  onMouseLeave={() => setHoveredRadarName(null)}
                                 />
                                 {/* Others average line (user color) */}
                                 <Radar
@@ -2149,6 +2152,8 @@ export default function App() {
                                   fill={user.color}
                                   fillOpacity={0.2}
                                   strokeWidth={2}
+                                  onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
+                                  onMouseLeave={() => setHoveredRadarName(null)}
                                 />
                               </>
                             ) : (
@@ -2159,6 +2164,8 @@ export default function App() {
                                 fill={user.color}
                                 fillOpacity={0.3}
                                 strokeWidth={2}
+                                onMouseEnter={() => setHoveredRadarName(user.name)}
+                                onMouseLeave={() => setHoveredRadarName(null)}
                               />
                             )}
                             {/* Target value line - only show if any target values are set */}
@@ -2170,44 +2177,33 @@ export default function App() {
                                 fill="transparent"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
+                                onMouseEnter={() => setHoveredRadarName('Zielwert')}
+                                onMouseLeave={() => setHoveredRadarName(null)}
                               />
                             )}
                             <Tooltip
                               content={(props) => {
                                 const { active, payload } = props;
-                                if (active && payload && payload.length) {
-                                  const data = payload[0].payload;
-                                  if (data.isDisabled) {
-                                    return (
-                                      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                                        <p className="font-medium text-gray-400">{data.skill}</p>
-                                        <p className="text-sm text-gray-500">Deaktiviert</p>
-                                      </div>
-                                    );
-                                  }
-                                  if (isSeparate) {
-                                    return (
-                                      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                                        <p className="font-medium">{data.skill}</p>
-                                        <p className="text-sm text-blue-600">
-                                          Selbstevaluation: {data.selfEvaluation}
-                                        </p>
-                                        <p className="text-sm" style={{ color: user.color }}>
-                                          Fremdevaluation: {data.othersAverage}
-                                        </p>
-                                      </div>
-                                    );
-                                  }
+                                if (!active || !payload?.length || !hoveredRadarName) return null;
+                                const data = payload[0].payload;
+                                if (data.isDisabled) {
                                   return (
                                     <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                                      <p className="font-medium">{data.skill}</p>
-                                      <p className="text-sm" style={{ color: user.color }}>
-                                        Durchschnitt: {data.average}
-                                      </p>
+                                      <p className="font-medium text-gray-400">{data.skill}</p>
+                                      <p className="text-sm text-gray-500">Deaktiviert</p>
                                     </div>
                                   );
                                 }
-                                return null;
+                                const entry = payload.find(p => p.name === hoveredRadarName);
+                                if (!entry) return null;
+                                return (
+                                  <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                                    <p className="font-medium">{data.skill}</p>
+                                    <p className="text-sm" style={{ color: entry.color }}>
+                                      {entry.name}: {entry.value}
+                                    </p>
+                                  </div>
+                                );
                               }}
                             />
                           </RadarChart>
@@ -2386,6 +2382,8 @@ export default function App() {
                             fill={user.color}
                             fillOpacity={0.15}
                             strokeWidth={2}
+                            onMouseEnter={() => setHoveredRadarName(user.name)}
+                            onMouseLeave={() => setHoveredRadarName(null)}
                           />
                         );
                       })}
@@ -2398,29 +2396,29 @@ export default function App() {
                           fill="transparent"
                           strokeWidth={2}
                           strokeDasharray="5 5"
+                          onMouseEnter={() => setHoveredRadarName('Zielwert')}
+                          onMouseLeave={() => setHoveredRadarName(null)}
                         />
                       )}
-                      <Tooltip 
+                      <Tooltip
                         content={(props) => {
                           const { active, payload } = props;
-                          if (active && payload && payload.length) {
-                            return (
-                              <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
-                                <p className="font-medium mb-2">{payload[0].payload.skill}</p>
-                                {payload.map((entry, index) => (
-                                  <div key={index} className="flex items-center gap-2 text-sm">
-                                    <div
-                                      className="w-3 h-3 rounded-full"
-                                      style={{ backgroundColor: entry.color }}
-                                    />
-                                    <span>{entry.name}:</span>
-                                    <span className="font-medium">{entry.value}</span>
-                                  </div>
-                                ))}
+                          if (!active || !payload?.length || !hoveredRadarName) return null;
+                          const entry = payload.find(p => p.name === hoveredRadarName);
+                          if (!entry) return null;
+                          return (
+                            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                              <p className="font-medium mb-2">{payload[0].payload.skill}</p>
+                              <div className="flex items-center gap-2 text-sm">
+                                <div
+                                  className="w-3 h-3 rounded-full"
+                                  style={{ backgroundColor: entry.color }}
+                                />
+                                <span>{entry.name}:</span>
+                                <span className="font-medium">{entry.value}</span>
                               </div>
-                            );
-                          }
-                          return null;
+                            </div>
+                          );
                         }}
                       />
                     </RadarChart>
