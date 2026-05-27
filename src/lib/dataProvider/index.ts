@@ -1,6 +1,5 @@
 import { config } from './config';
-import { createPhpProvider } from './phpProvider';
-import { createSupabaseProvider } from './supabaseProvider';
+import { createAzureProvider } from './azureProvider';
 import type { DataProvider } from './types';
 
 // Re-export types
@@ -10,21 +9,15 @@ export type { DataProvider, Project, User, Skill, Evaluation, Template, RatingLe
  * Erstellt den DataProvider basierend auf der Konfiguration in config.ts
  */
 function createDataProvider(): DataProvider {
-  switch (config.provider) {
-    case 'php':
-      console.log('📡 Using PHP backend:', config.baseUrl);
-      return createPhpProvider(config.baseUrl);
-
-    case 'supabase':
-      console.log('📡 Using Supabase backend:', config.projectId);
-      return createSupabaseProvider({
-        projectId: config.projectId,
-        anonKey: config.anonKey,
-      });
-
-    default:
-      throw new Error(`Unknown provider type: ${(config as { provider: string }).provider}`);
+  if (config.provider === 'azure') {
+    console.log('📡 Using Azure Functions backend:', config.baseUrl);
+    return createAzureProvider({
+      baseUrl: config.baseUrl,
+      functionKey: config.functionKey,
+      teamId: config.teamId,
+    });
   }
+  throw new Error(`Unknown provider: ${(config as { provider: string }).provider}`);
 }
 
 // Singleton-Instanz des DataProviders

@@ -1,0 +1,18 @@
+{
+  "name": "skillgapper-functions",
+  "version": "0.1.0",
+  "description": "Azure Functions backend for SkillGapper — Cosmos DB CRUD per project document.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "func start",
+    "test": "echo \"no tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "@azure/cosmos": "^4.1.1",
+    "@azure/functions": "^4.5.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
