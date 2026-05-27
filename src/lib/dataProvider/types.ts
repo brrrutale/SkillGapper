@@ -6,17 +6,11 @@ export interface Project {
   hasPassword?: boolean;
 }
 
-export interface Skill {
-  id: string;
-  name: string;
-}
-
 export interface User {
   id: string;
   name: string;
   color: string;
-  disabledSkills?: string[]; // Array von Skill-IDs (nicht Namen!)
-  order?: number; // Reihenfolge für Sortierung
+  disabledSkills?: string[];
 }
 
 export interface Evaluation {
@@ -32,8 +26,8 @@ export interface RatingLevel {
 }
 
 export interface Template {
-  skills: Skill[];
-  targetValues?: Record<string, number>; // Key ist Skill-ID
+  skills: string[];
+  targetValues?: Record<string, number>;
   ratingLevels?: RatingLevel[];
 }
 

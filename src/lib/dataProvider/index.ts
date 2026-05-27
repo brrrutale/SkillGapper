@@ -4,7 +4,7 @@ import { createSupabaseProvider } from './supabaseProvider';
 import type { DataProvider } from './types';
 
 // Re-export types
-export type { DataProvider, Project, User, Evaluation, Template, RatingLevel, Skill } from './types';
+export type { DataProvider, Project, User, Evaluation, Template, RatingLevel } from './types';
 
 /**
  * Erstellt den DataProvider basierend auf der Konfiguration in config.ts

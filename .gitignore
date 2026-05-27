@@ -1,4 +1,8 @@
 .DS_Store
+node_modules/
+dist/
+/assets/
+*.log
 data/projects/*
 !data/projects/.gitkeep
 .claude/settings.local.json

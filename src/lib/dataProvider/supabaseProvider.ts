@@ -1,4 +1,4 @@
-import type { DataProvider, Project, User, Evaluation, Template, Skill } from './types';
+import type { DataProvider, Project, User, Evaluation, Template } from './types';
 
 export interface SupabaseConfig {
   projectId: string;
@@ -15,26 +15,9 @@ interface SupabaseProject {
 interface SupabaseTemplate {
   id: string;
   project_id: string;
-  skills: Skill[] | string[]; // Kann sowohl altes (string[]) als auch neues Format (Skill[]) sein
+  skills: string[];
   target_values: Record<string, number> | null;
   rating_levels: Array<{ level: number; title: string; description: string }> | null;
-}
-
-// Hilfsfunktion zur Migration von alten Skills (string[]) zu neuen Skills (Skill[])
-function migrateSkills(skills: Skill[] | string[]): Skill[] {
-  if (!skills || skills.length === 0) return [];
-
-  // Prüfe ob bereits neues Format (erstes Element ist ein Objekt mit id und name)
-  if (typeof skills[0] === 'object' && skills[0] !== null && 'id' in skills[0] && 'name' in skills[0]) {
-    return skills as Skill[];
-  }
-
-  // Altes Format: string[] -> Skill[] migrieren
-  // Generiere eine stabile ID basierend auf dem Index
-  return (skills as string[]).map((name, index) => ({
-    id: `skill_${index}_${Date.now()}`,
-    name: name,
-  }));
 }
 
 interface SupabaseUser {
@@ -43,7 +26,6 @@ interface SupabaseUser {
   name: string;
   color: string;
   disabled_skills: string[];
-  order_index: number | null;
 }
 
 interface SupabaseEvaluation {
@@ -195,10 +177,8 @@ export function createSupabaseProvider(config: SupabaseConfig): DataProvider {
         if (templates.length === 0) return null;
 
         const t = templates[0];
-        const migratedSkills = migrateSkills(t.skills || []);
-
         return {
-          skills: migratedSkills,
+          skills: t.skills || [],
           targetValues: t.target_values || undefined,
           ratingLevels: t.rating_levels || undefined,
         };
@@ -252,18 +232,12 @@ export function createSupabaseProvider(config: SupabaseConfig): DataProvider {
         });
         setStoredUserMap(projectId, userMap);
 
-        // Sortiere client-seitig nach order_index (nulls zuletzt)
-        const sortedUsers = users
-          .map((u, index) => ({
-            id: u.id,
-            name: u.name,
-            color: u.color,
-            disabledSkills: u.disabled_skills || [],
-            order: u.order_index ?? 9999 + index, // Null-Werte ans Ende
-          }))
-          .sort((a, b) => a.order - b.order);
-
-        return sortedUsers;
+        return users.map((u) => ({
+          id: u.id,
+          name: u.name,
+          color: u.color,
+          disabledSkills: u.disabled_skills || [],
+        }));
       } catch {
         return [];
       }
@@ -288,15 +262,13 @@ export function createSupabaseProvider(config: SupabaseConfig): DataProvider {
         });
       }
 
-      // Upsert users (with order based on array index)
-      for (let i = 0; i < users.length; i++) {
-        const user = users[i];
+      // Upsert users
+      for (const user of users) {
         const data = {
           project_id: projectId,
           name: user.name,
           color: user.color,
           disabled_skills: user.disabledSkills || [],
-          order_index: i,
         };
 
         if (existingIds.has(user.id)) {

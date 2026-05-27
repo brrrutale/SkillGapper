@@ -1,17 +1,18 @@
 /**
- * Backend-Konfiguration für SkillGapper
+ * Backend-Konfiguration
  *
- * Wähle zwischen 'php' und 'supabase' als Provider
+ * Hier wird festgelegt, welches Backend verwendet wird.
+ * Einfach den 'provider' Wert ändern um zwischen Backends zu wechseln.
  */
 
 export type ProviderType = 'php' | 'supabase';
 
-export interface PhpConfig {
+interface PhpConfig {
   provider: 'php';
-  baseUrl: string;
+  baseUrl: string; // z.B. '/api' oder 'https://euer-server.de/api'
 }
 
-export interface SupabaseConfig {
+interface SupabaseConfig {
   provider: 'supabase';
   projectId: string;
   anonKey: string;
@@ -22,36 +23,45 @@ export type BackendConfig = PhpConfig | SupabaseConfig;
 /**
  * Ermittelt den Basis-Pfad der Anwendung dynamisch.
  * Funktioniert sowohl für Root-Installation (/) als auch für Unterverzeichnisse
+ * (z.B. /MWS/Release/Crea/SkillGapper/)
  */
 function getBasePath(): string {
+  // Get the current page path
   const path = window.location.pathname;
+
+  // Find the last segment that could be a file (index.html) or empty
+  // and get everything before it as the base path
   const segments = path.split('/').filter(Boolean);
 
+  // If the last segment looks like a file, remove it
   if (segments.length > 0 && segments[segments.length - 1].includes('.')) {
     segments.pop();
   }
 
+  // Reconstruct the base path
   const basePath = segments.length > 0 ? '/' + segments.join('/') : '';
+
   return basePath + '/api';
 }
 
 /**
  * AKTIVE KONFIGURATION
  *
- * === FÜR PHP BACKEND ===
+ * Ändere diese Konfiguration um zwischen Backends zu wechseln:
+ *
+ * Für eigenen PHP-Server:
  * export const config: BackendConfig = {
  *   provider: 'php',
- *   baseUrl: getBasePath(),
+ *   baseUrl: '/api',  // oder absolute URL zu eurem Server
  * };
  *
- * === FÜR SUPABASE BACKEND ===
+ * Für Supabase:
  * export const config: BackendConfig = {
  *   provider: 'supabase',
- *   projectId: 'dein-projekt-id',  // z.B. 'abcdefghijklmnop'
- *   anonKey: 'dein-anon-key',      // Aus Supabase Dashboard > Settings > API
+ *   projectId: 'euer-project-id',
+ *   anonKey: 'euer-anon-key',
  * };
  */
-
 // ========================================
 // SUPABASE KONFIGURATION (AKTIV)
 // ========================================
