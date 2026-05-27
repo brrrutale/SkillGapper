@@ -183,6 +183,7 @@ export default function App() {
   const [currentEvaluatedId, setCurrentEvaluatedId] = useState<string | null>(null);
   const [hoveredRadarName, setHoveredRadarName] = useState<string | null>(null);
   const [showIndividualEvaluations, setShowIndividualEvaluations] = useState(false);
+  const [showSeparateEvaluation, setShowSeparateEvaluation] = useState(true);
   const [loading, setLoading] = useState(true);
   const [evaluationSaveStatus, setEvaluationSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isOnline, setIsOnline] = useState(true);
@@ -190,7 +191,6 @@ export default function App() {
   const [isEvaluationCenterCollapsed, setIsEvaluationCenterCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'error' | 'idle'>('idle');
-  const [separateSelfEvaluation, setSeparateSelfEvaluation] = useState<Record<string, boolean>>({});
 
   // Track if user is actively interacting to prevent polling conflicts
   const userInteractingRef = useRef(false);
@@ -320,6 +320,12 @@ export default function App() {
     localStorage.setItem(`showIndividualEvaluations:${currentProject.id}`, showIndividualEvaluations ? '1' : '0');
   }, [showIndividualEvaluations, currentProject]);
 
+  // Persist showSeparateEvaluation per project
+  useEffect(() => {
+    if (!currentProject) return;
+    localStorage.setItem(`showSeparateEvaluation:${currentProject.id}`, showSeparateEvaluation ? '1' : '0');
+  }, [showSeparateEvaluation, currentProject]);
+
   // Save resultsView to localStorage when it changes
   useEffect(() => {
     localStorage.setItem('lastResultsView', resultsView);
@@ -389,6 +395,9 @@ export default function App() {
           const lastResultsView = localStorage.getItem('lastResultsView') as 'individual' | 'global' | null;
           const lastShowIndividual = localStorage.getItem(`showIndividualEvaluations:${currentProject.id}`);
           setShowIndividualEvaluations(lastShowIndividual === '1');
+          const lastShowSeparate = localStorage.getItem(`showSeparateEvaluation:${currentProject.id}`);
+          // Default true if never set
+          setShowSeparateEvaluation(lastShowSeparate === null ? true : lastShowSeparate === '1');
 
           if (lastEvaluatorId && usersData?.some(u => u.id === lastEvaluatorId)) {
             setCurrentEvaluatorId(lastEvaluatorId);
@@ -2043,10 +2052,11 @@ export default function App() {
             ) : resultsView === 'individual' ? (
               <>
                 <div className="grid grid-cols-1 2xl:grid-cols-2 gap-8">{users.map(user => {
-                const isSeparate = separateSelfEvaluation[user.id] ?? false;
+                const { hasSelfEvaluation, hasOtherEvaluations } = calculateSeparateRatings(user.id);
+                // Only render in separate mode if at least one side has data; otherwise fall back to combined
+                const isSeparate = showSeparateEvaluation && (hasSelfEvaluation || hasOtherEvaluations);
                 const chartData = prepareResultsChartData(user.id, isSeparate);
                 const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
-                const { hasSelfEvaluation, hasOtherEvaluations } = calculateSeparateRatings(user.id);
 
                 return (
                   <div key={user.id} className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6">
@@ -2070,27 +2080,6 @@ export default function App() {
                         {evaluatorCount} Evaluation{evaluatorCount !== 1 ? 'en' : ''}
                       </span>
                     </div>
-
-                    {/* Toggle for separate self-evaluation */}
-                    {hasSelfEvaluation && hasOtherEvaluations && (
-                      <div className="mb-4 flex items-center gap-3">
-                        <button
-                          onClick={() => setSeparateSelfEvaluation(prev => ({ ...prev, [user.id]: !prev[user.id] }))}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                            isSeparate ? 'bg-blue-600' : 'bg-gray-300'
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                              isSeparate ? 'translate-x-6' : 'translate-x-1'
-                            }`}
-                          />
-                        </button>
-                        <span className="text-sm text-gray-600">
-                          {isSeparate ? 'Selbst- und Fremdevaluation separat' : 'Alle Evaluationen kombiniert'}
-                        </span>
-                      </div>
-                    )}
 
                     {chartData.length === 0 ? (
                       <div className="text-center py-12 text-gray-500">
@@ -2159,54 +2148,49 @@ export default function App() {
                                 overlapping polygons don't swallow hover events. */}
                             {isSeparate ? (
                               <>
-                                {/* Self-evaluation line (blue) */}
-                                <Radar
-                                  name="Selbstevaluation"
-                                  dataKey="selfEvaluation"
-                                  stroke="#3B82F6"
-                                  fill="#3B82F6"
-                                  fillOpacity={0.2}
-                                  strokeWidth={2}
-                                  onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
-                                  onMouseLeave={() => setHoveredRadarName(null)}
-                                  dot={(props: { cx?: number; cy?: number; index?: number }) => (
-                                    <circle
-                                      key={props.index}
-                                      cx={props.cx}
-                                      cy={props.cy}
-                                      r={10}
-                                      fill="transparent"
-                                      style={{ pointerEvents: 'all', cursor: 'pointer' }}
-                                      onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
-                                      onMouseLeave={() => setHoveredRadarName(null)}
-                                    />
-                                  )}
-                                  activeDot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
-                                />
-                                {/* Others average line (user color) */}
-                                <Radar
-                                  name="Fremdevaluation"
-                                  dataKey="othersAverage"
-                                  stroke={user.color}
-                                  fill={user.color}
-                                  fillOpacity={0.2}
-                                  strokeWidth={2}
-                                  onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
-                                  onMouseLeave={() => setHoveredRadarName(null)}
-                                  dot={(props: { cx?: number; cy?: number; index?: number }) => (
-                                    <circle
-                                      key={props.index}
-                                      cx={props.cx}
-                                      cy={props.cy}
-                                      r={10}
-                                      fill="transparent"
-                                      style={{ pointerEvents: 'all', cursor: 'pointer' }}
-                                      onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
-                                      onMouseLeave={() => setHoveredRadarName(null)}
-                                    />
-                                  )}
-                                  activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
-                                />
+                                {/* Self-evaluation line — always blue, no tooltip
+                                    (reference shape only; users compare against the green
+                                    Fremdevaluation polygon). */}
+                                {hasSelfEvaluation && (
+                                  <Radar
+                                    name="Selbstevaluation"
+                                    dataKey="selfEvaluation"
+                                    stroke="#3B82F6"
+                                    fill="#3B82F6"
+                                    fillOpacity={0.2}
+                                    strokeWidth={2}
+                                    isAnimationActive={false}
+                                    style={{ pointerEvents: 'none' }}
+                                    dot={false}
+                                    activeDot={false}
+                                  />
+                                )}
+                                {/* Others average line — always green, hoverable */}
+                                {hasOtherEvaluations && (
+                                  <Radar
+                                    name="Fremdevaluation"
+                                    dataKey="othersAverage"
+                                    stroke="#10B981"
+                                    fill="#10B981"
+                                    fillOpacity={0.2}
+                                    strokeWidth={2}
+                                    onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
+                                    onMouseLeave={() => setHoveredRadarName(null)}
+                                    dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                                      <circle
+                                        key={props.index}
+                                        cx={props.cx}
+                                        cy={props.cy}
+                                        r={10}
+                                        fill="transparent"
+                                        style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                        onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
+                                        onMouseLeave={() => setHoveredRadarName(null)}
+                                      />
+                                    )}
+                                    activeDot={{ r: 4, fill: '#10B981', stroke: '#fff', strokeWidth: 2 }}
+                                  />
+                                )}
                               </>
                             ) : (
                               <Radar
@@ -2308,14 +2292,18 @@ export default function App() {
                     {/* Legend when separate mode is active */}
                     {isSeparate && chartData.length > 0 && (
                       <div className="mt-4 flex flex-wrap gap-4 justify-center text-sm">
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: '#3B82F6' }} />
-                          <span>Selbstevaluation</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-4 h-4 rounded" style={{ backgroundColor: user.color }} />
-                          <span>Fremdevaluation (Durchschnitt)</span>
-                        </div>
+                        {hasSelfEvaluation && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#3B82F6' }} />
+                            <span>Selbstevaluation</span>
+                          </div>
+                        )}
+                        {hasOtherEvaluations && (
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded" style={{ backgroundColor: '#10B981' }} />
+                            <span>Fremdevaluation (Durchschnitt)</span>
+                          </div>
+                        )}
                         {chartData.some(d => d.target !== undefined) && (
                           <div className="flex items-center gap-2">
                             <div className="w-4 h-1 border-t-2 border-dashed border-red-500" />
@@ -2985,6 +2973,20 @@ export default function App() {
                         Einstellungen für die Darstellung der Ergebnisse.
                       </p>
                     </div>
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <button
+                        type="button"
+                        onClick={() => setShowSeparateEvaluation(v => !v)}
+                        aria-pressed={showSeparateEvaluation}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 mt-0.5 ${showSeparateEvaluation ? 'bg-blue-600' : 'bg-gray-300'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${showSeparateEvaluation ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                      <span className="text-sm">
+                        <span className="font-medium block">Selbst- und Fremdevaluation separat anzeigen</span>
+                        <span className="text-gray-600">Selbsteinschätzung (blau) und gemittelte Fremdeinschätzung (grün) als zwei getrennte Polygone darstellen. Aus: alle Evaluationen werden gemittelt.</span>
+                      </span>
+                    </label>
                     <label className="flex items-start gap-3 cursor-pointer">
                       <button
                         type="button"
