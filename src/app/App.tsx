@@ -1811,7 +1811,6 @@ export default function App() {
                         </label>
                         <div className="space-y-2">
                           {users.map(user => {
-                            const isComplete = isEvaluationComplete(currentEvaluatorId, user.id);
                             const hasEvaluation = evaluations.some(
                               e => e.evaluatorId === currentEvaluatorId && e.evaluatedUserId === user.id
                             );
@@ -1819,7 +1818,7 @@ export default function App() {
                             return (
                               <div
                                 key={user.id}
-                                className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition ${
+                                className={`group w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition ${
                                   isSelected
                                     ? 'bg-green-50 border-2 border-green-500'
                                     : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
@@ -1835,16 +1834,13 @@ export default function App() {
                                   />
                                   <span className="flex-1 text-left font-medium">{user.name}</span>
                                 </button>
-                                {isComplete && (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                )}
-                                {isSelected && hasEvaluation && (
+                                {hasEvaluation && (
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       resetEvaluationForPerson(currentEvaluatorId, user.id);
                                     }}
-                                    className="text-xs text-red-600 hover:text-red-700 font-medium cursor-pointer flex items-center gap-1 ml-2"
+                                    className="text-xs text-red-600 hover:text-red-700 font-medium cursor-pointer flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
                                     title="Evaluation zurücksetzen"
                                   >
                                     <Trash2 className="w-3 h-3" />
