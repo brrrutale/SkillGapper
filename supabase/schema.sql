@@ -23,10 +23,15 @@ CREATE TABLE IF NOT EXISTS templates (
   skills JSONB NOT NULL DEFAULT '[]'::jsonb,
   target_values JSONB DEFAULT '{}'::jsonb,
   rating_levels JSONB DEFAULT NULL,
+  -- Project-wide UI preferences (showSeparateEvaluation, showIndividualEvaluations, ...)
+  display_settings JSONB DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Users Tabelle (Benutzer innerhalb eines Projekts)
+-- Migration for existing installs: add display_settings to an older templates table.
+ALTER TABLE templates ADD COLUMN IF NOT EXISTS display_settings JSONB DEFAULT '{}'::jsonb;
+
+-- Users Tabelle (User innerhalb eines Projekts)
 CREATE TABLE IF NOT EXISTS users (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -44,7 +49,7 @@ CREATE TABLE IF NOT EXISTS evaluations (
   evaluated_user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   skills JSONB NOT NULL DEFAULT '{}'::jsonb,
   updated_at TIMESTAMPTZ DEFAULT NOW(),
-  -- Ein Bewerter kann jeden Benutzer nur einmal bewerten
+  -- Ein Bewerter kann jeden User nur einmal bewerten
   UNIQUE(project_id, evaluator_id, evaluated_user_id)
 );
 

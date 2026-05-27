@@ -182,8 +182,6 @@ export default function App() {
   const [currentEvaluatorId, setCurrentEvaluatorId] = useState<string | null>(null);
   const [currentEvaluatedId, setCurrentEvaluatedId] = useState<string | null>(null);
   const [hoveredRadarName, setHoveredRadarName] = useState<string | null>(null);
-  const [showIndividualEvaluations, setShowIndividualEvaluations] = useState(false);
-  const [showSeparateEvaluation, setShowSeparateEvaluation] = useState(true);
   const [loading, setLoading] = useState(true);
   const [evaluationSaveStatus, setEvaluationSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [isOnline, setIsOnline] = useState(true);
@@ -314,17 +312,9 @@ export default function App() {
     }
   }, [currentEvaluatedId, currentProject]);
 
-  // Persist showIndividualEvaluations per project
-  useEffect(() => {
-    if (!currentProject) return;
-    localStorage.setItem(`showIndividualEvaluations:${currentProject.id}`, showIndividualEvaluations ? '1' : '0');
-  }, [showIndividualEvaluations, currentProject]);
-
-  // Persist showSeparateEvaluation per project
-  useEffect(() => {
-    if (!currentProject) return;
-    localStorage.setItem(`showSeparateEvaluation:${currentProject.id}`, showSeparateEvaluation ? '1' : '0');
-  }, [showSeparateEvaluation, currentProject]);
+  // Display settings (showSeparateEvaluation, showIndividualEvaluations) now
+  // live on template.displaySettings — persisted in the database so all users
+  // of the same project share them. No localStorage syncing required.
 
   // Save resultsView to localStorage when it changes
   useEffect(() => {
@@ -393,11 +383,6 @@ export default function App() {
           const lastEvaluatorId = localStorage.getItem(`lastEvaluatorId:${currentProject.id}`);
           const lastEvaluatedId = localStorage.getItem(`lastEvaluatedId:${currentProject.id}`);
           const lastResultsView = localStorage.getItem('lastResultsView') as 'individual' | 'global' | null;
-          const lastShowIndividual = localStorage.getItem(`showIndividualEvaluations:${currentProject.id}`);
-          setShowIndividualEvaluations(lastShowIndividual === '1');
-          const lastShowSeparate = localStorage.getItem(`showSeparateEvaluation:${currentProject.id}`);
-          // Default true if never set
-          setShowSeparateEvaluation(lastShowSeparate === null ? true : lastShowSeparate === '1');
 
           if (lastEvaluatorId && usersData?.some(u => u.id === lastEvaluatorId)) {
             setCurrentEvaluatorId(lastEvaluatorId);
@@ -873,7 +858,7 @@ export default function App() {
   // User functions
   const addUser = () => {
     lastLocalUpdateRef.current = Date.now();
-    const userName = newUserName.trim() || `Benutzer ${users.length + 1}`;
+    const userName = newUserName.trim() || `User ${users.length + 1}`;
     const newUser: User = {
       id: Date.now().toString(),
       name: userName,
@@ -1001,6 +986,18 @@ export default function App() {
     }
   };
 
+  // Display preferences derived from the template (DB-backed, project-wide).
+  // Defaults match the previous local-only behaviour.
+  const showSeparateEvaluation = template.displaySettings?.showSeparateEvaluation ?? true;
+  const showIndividualEvaluations = template.displaySettings?.showIndividualEvaluations ?? false;
+
+  const updateDisplaySetting = (patch: { showSeparateEvaluation?: boolean; showIndividualEvaluations?: boolean }) => {
+    setTemplate(prev => ({
+      ...prev,
+      displaySettings: { ...(prev.displaySettings || {}), ...patch },
+    }));
+  };
+
   // Calculate average ratings for a user (keyed by skill ID)
   const calculateAverageRatings = (evaluatedUserId: string) => {
     const userEvaluations = evaluations.filter(e => e.evaluatedUserId === evaluatedUserId);
@@ -1126,7 +1123,7 @@ export default function App() {
   // Export selected users as PDF
   const exportUserChartsToPDF = async () => {
     if (selectedUsersForExport.length === 0) {
-      alert('Bitte wähle mindestens einen Benutzer zum Exportieren aus.');
+      alert('Bitte wähle mindestens einen User zum Exportieren aus.');
       return;
     }
 
@@ -1237,7 +1234,7 @@ export default function App() {
 
       // Add title
       pdf.setFontSize(18);
-      pdf.text('Skill-Gap Analyse - Alle Benutzer*innen', margin, margin + 5);
+      pdf.text('Skill-Gap Analyse - Alle User*innen', margin, margin + 5);
 
       // Add project name
       if (currentProject) {
@@ -1430,7 +1427,7 @@ export default function App() {
 
           // Add title (centered)
           pdf.setFontSize(18);
-          pdf.text('Skill-Gap Analyse - Alle Benutzer*innen', pageWidth / 2, margin + 5, { align: 'center' });
+          pdf.text('Skill-Gap Analyse - Alle User*innen', pageWidth / 2, margin + 5, { align: 'center' });
 
           // Add project name (centered)
           let headerHeight = margin + 12;
@@ -1753,7 +1750,7 @@ export default function App() {
               {!isEvaluationCenterCollapsed && (
                 users.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
-                    <p>Keine Benutzer konfiguriert. Gehe zu den Einstellungen, um Benutzer hinzuzufügen.</p>
+                    <p>Keine User konfiguriert. Gehe zu den Einstellungen, um User hinzuzufügen.</p>
                   </div>
                 ) : (
                   <>
@@ -2019,7 +2016,7 @@ export default function App() {
                     onChange={(e) => setResultsView(e.target.value as 'individual' | 'global')}
                     className="px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium flex-1 sm:flex-initial"
                   >
-                    <option value="individual">Einzelne Benutzer</option>
+                    <option value="individual">Einzelne User</option>
                     <option value="global">Globale Übersicht</option>
                   </select>
                 </div>
@@ -2037,7 +2034,7 @@ export default function App() {
                   className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
                 <label htmlFor="select-all-users" className="text-sm font-medium text-gray-700 cursor-pointer">
-                  Alle Benutzer auswählen ({users.length})
+                  Alle User auswählen ({users.length})
                 </label>
               </div>
             )}
@@ -2046,7 +2043,7 @@ export default function App() {
               <div className="flex items-center justify-center min-h-[400px]">
                 <div className="text-center py-8 text-gray-500">
                   <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-xl">Noch keine Benutzer konfiguriert</p>
+                  <p className="text-xl">Noch keine User konfiguriert</p>
                 </div>
               </div>
             ) : resultsView === 'individual' ? (
@@ -2367,7 +2364,7 @@ export default function App() {
               <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6 max-w-5xl mx-auto">
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-medium">Alle Benutzer*innen</h3>
+                    <h3 className="text-xl font-medium">Alle User*innen</h3>
                     <button
                       onClick={exportGlobalChartToPDF}
                       disabled={isExporting}
@@ -2692,14 +2689,14 @@ export default function App() {
                   />
                   <div className="flex items-center gap-2">
                     <BarChart3 className="w-5 h-5 text-gray-600" />
-                    <span className="font-medium">Globale Übersicht (alle Benutzer*innen)</span>
+                    <span className="font-medium">Globale Übersicht (alle User*innen)</span>
                   </div>
                 </label>
               </div>
 
               {/* Individual Users */}
               <div className="mb-6">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Einzelne Benutzer*innen ({users.length})</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-3">Einzelne User*innen ({users.length})</h3>
                 <div className="space-y-2">
                   {users.map(user => {
                     const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
@@ -2845,9 +2842,9 @@ export default function App() {
                   {/* Users Section */}
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-lg font-medium mb-2 lg:mb-4">Benutzerverwaltung</h3>
+                      <h3 className="text-lg font-medium mb-2 lg:mb-4">Userverwaltung</h3>
                       <p className="text-sm text-gray-600 mb-4">
-                        Füge Benutzer hinzu, die evaluieren und evaluiert werden.
+                        Füge User hinzu, die evaluieren und evaluiert werden.
                       </p>
                     </div>
 
@@ -2857,7 +2854,7 @@ export default function App() {
                         value={newUserName}
                         onChange={(e) => setNewUserName(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && addUser()}
-                        placeholder="Neuer Benutzername..."
+                        placeholder="Neuer Username..."
                         className="flex-1 px-4 py-3 border border-[#ddd] rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-base"
                       />
                       <button
@@ -2921,7 +2918,7 @@ export default function App() {
                                 <button
                                   onClick={() => removeUser(user.id)}
                                   className="text-red-600 hover:text-red-700 p-2 hover:bg-red-50 rounded-[8px] cursor-pointer"
-                                  title="Benutzer entfernen"
+                                  title="User entfernen"
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </button>
@@ -2976,7 +2973,7 @@ export default function App() {
                     <label className="flex items-start gap-3 cursor-pointer">
                       <button
                         type="button"
-                        onClick={() => setShowSeparateEvaluation(v => !v)}
+                        onClick={() => updateDisplaySetting({ showSeparateEvaluation: !showSeparateEvaluation })}
                         aria-pressed={showSeparateEvaluation}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 mt-0.5 ${showSeparateEvaluation ? 'bg-blue-600' : 'bg-gray-300'}`}
                       >
@@ -2990,7 +2987,7 @@ export default function App() {
                     <label className="flex items-start gap-3 cursor-pointer">
                       <button
                         type="button"
-                        onClick={() => setShowIndividualEvaluations(v => !v)}
+                        onClick={() => updateDisplaySetting({ showIndividualEvaluations: !showIndividualEvaluations })}
                         aria-pressed={showIndividualEvaluations}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors flex-shrink-0 mt-0.5 ${showIndividualEvaluations ? 'bg-blue-600' : 'bg-gray-300'}`}
                       >

@@ -30,10 +30,16 @@ export interface RatingLevel {
   description: string;
 }
 
+export interface DisplaySettings {
+  showSeparateEvaluation?: boolean; // default true
+  showIndividualEvaluations?: boolean; // default false
+}
+
 export interface Template {
   skills: Skill[];
   targetValues?: Record<string, number>; // keyed by skill ID
   ratingLevels?: RatingLevel[];
+  displaySettings?: DisplaySettings;
 }
 
 // DataProvider Interface - kann von verschiedenen Backends implementiert werden

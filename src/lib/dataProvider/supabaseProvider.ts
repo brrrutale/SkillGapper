@@ -18,6 +18,7 @@ interface SupabaseTemplate {
   skills: Array<{ id: string; name: string }>;
   target_values: Record<string, number> | null;
   rating_levels: Array<{ level: number; title: string; description: string }> | null;
+  display_settings: Record<string, unknown> | null;
 }
 
 interface SupabaseUser {
@@ -181,6 +182,7 @@ export function createSupabaseProvider(config: SupabaseConfig): DataProvider {
           skills: t.skills || [],
           targetValues: t.target_values || undefined,
           ratingLevels: t.rating_levels || undefined,
+          displaySettings: (t.display_settings as Template['displaySettings']) || undefined,
         };
       } catch {
         return null;
@@ -199,6 +201,7 @@ export function createSupabaseProvider(config: SupabaseConfig): DataProvider {
         skills: template.skills,
         target_values: template.targetValues || null,
         rating_levels: template.ratingLevels || null,
+        display_settings: template.displaySettings || null,
       };
 
       if (existing.length > 0) {

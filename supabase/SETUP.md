@@ -68,14 +68,14 @@ Die App verbindet sich jetzt mit Supabase statt dem PHP-Backend.
 | project_id | UUID | Fremdschlüssel zu projects |
 | skills | JSONB | Array von Skill-Namen |
 | target_values | JSONB | Zielwerte pro Skill |
-| rating_levels | JSONB | Benutzerdefinierte Bewertungsstufen |
+| rating_levels | JSONB | Userdefinierte Bewertungsstufen |
 
 ### users
 | Spalte | Typ | Beschreibung |
 |--------|-----|--------------|
 | id | UUID | Primärschlüssel |
 | project_id | UUID | Fremdschlüssel zu projects |
-| name | TEXT | Benutzername |
+| name | TEXT | Username |
 | color | TEXT | Farbe für Charts (Hex) |
 | disabled_skills | JSONB | Deaktivierte Skills für diesen User |
 
