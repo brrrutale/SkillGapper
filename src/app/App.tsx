@@ -2154,7 +2154,9 @@ export default function App() {
                               ticks={[0, 1, 2, 3, 4, 5]}
                               tick={{ fill: '#6B7280', fontSize: window.innerWidth < 1024 ? 11 : 13 }}
                             />
-                            {/* Radar lines based on toggle state */}
+                            {/* Radar lines based on toggle state. Each Radar renders a
+                                transparent hit-zone circle (dot prop) at each vertex so
+                                overlapping polygons don't swallow hover events. */}
                             {isSeparate ? (
                               <>
                                 {/* Self-evaluation line (blue) */}
@@ -2167,6 +2169,19 @@ export default function App() {
                                   strokeWidth={2}
                                   onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
                                   onMouseLeave={() => setHoveredRadarName(null)}
+                                  dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                                    <circle
+                                      key={props.index}
+                                      cx={props.cx}
+                                      cy={props.cy}
+                                      r={10}
+                                      fill="transparent"
+                                      style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                      onMouseEnter={() => setHoveredRadarName('Selbstevaluation')}
+                                      onMouseLeave={() => setHoveredRadarName(null)}
+                                    />
+                                  )}
+                                  activeDot={{ r: 4, fill: '#3B82F6', stroke: '#fff', strokeWidth: 2 }}
                                 />
                                 {/* Others average line (user color) */}
                                 <Radar
@@ -2178,6 +2193,19 @@ export default function App() {
                                   strokeWidth={2}
                                   onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
                                   onMouseLeave={() => setHoveredRadarName(null)}
+                                  dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                                    <circle
+                                      key={props.index}
+                                      cx={props.cx}
+                                      cy={props.cy}
+                                      r={10}
+                                      fill="transparent"
+                                      style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                      onMouseEnter={() => setHoveredRadarName('Fremdevaluation')}
+                                      onMouseLeave={() => setHoveredRadarName(null)}
+                                    />
+                                  )}
+                                  activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
                                 />
                               </>
                             ) : (
@@ -2190,6 +2218,19 @@ export default function App() {
                                 strokeWidth={2}
                                 onMouseEnter={() => setHoveredRadarName(user.name)}
                                 onMouseLeave={() => setHoveredRadarName(null)}
+                                dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                                  <circle
+                                    key={props.index}
+                                    cx={props.cx}
+                                    cy={props.cy}
+                                    r={10}
+                                    fill="transparent"
+                                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                    onMouseEnter={() => setHoveredRadarName(user.name)}
+                                    onMouseLeave={() => setHoveredRadarName(null)}
+                                  />
+                                )}
+                                activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
                               />
                             )}
                             {/* Target value line - only show if any target values are set */}
@@ -2203,6 +2244,19 @@ export default function App() {
                                 strokeDasharray="5 5"
                                 onMouseEnter={() => setHoveredRadarName('Zielwert')}
                                 onMouseLeave={() => setHoveredRadarName(null)}
+                                dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                                  <circle
+                                    key={props.index}
+                                    cx={props.cx}
+                                    cy={props.cy}
+                                    r={10}
+                                    fill="transparent"
+                                    style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                    onMouseEnter={() => setHoveredRadarName('Zielwert')}
+                                    onMouseLeave={() => setHoveredRadarName(null)}
+                                  />
+                                )}
+                                activeDot={{ r: 4, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
                               />
                             )}
                             <Tooltip
@@ -2433,6 +2487,19 @@ export default function App() {
                             strokeWidth={2}
                             onMouseEnter={() => setHoveredRadarName(user.name)}
                             onMouseLeave={() => setHoveredRadarName(null)}
+                            dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                              <circle
+                                key={props.index}
+                                cx={props.cx}
+                                cy={props.cy}
+                                r={10}
+                                fill="transparent"
+                                style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                                onMouseEnter={() => setHoveredRadarName(user.name)}
+                                onMouseLeave={() => setHoveredRadarName(null)}
+                              />
+                            )}
+                            activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
                           />
                         );
                       })}
@@ -2447,6 +2514,19 @@ export default function App() {
                           strokeDasharray="5 5"
                           onMouseEnter={() => setHoveredRadarName('Zielwert')}
                           onMouseLeave={() => setHoveredRadarName(null)}
+                          dot={(props: { cx?: number; cy?: number; index?: number }) => (
+                            <circle
+                              key={props.index}
+                              cx={props.cx}
+                              cy={props.cy}
+                              r={10}
+                              fill="transparent"
+                              style={{ pointerEvents: 'all', cursor: 'pointer' }}
+                              onMouseEnter={() => setHoveredRadarName('Zielwert')}
+                              onMouseLeave={() => setHoveredRadarName(null)}
+                            />
+                          )}
+                          activeDot={{ r: 4, fill: '#EF4444', stroke: '#fff', strokeWidth: 2 }}
                         />
                       )}
                       <Tooltip
