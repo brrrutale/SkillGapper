@@ -2185,7 +2185,7 @@ export default function App() {
                                         onMouseLeave={() => setHoveredRadarName(null)}
                                       />
                                     )}
-                                    activeDot={{ r: 4, fill: '#10B981', stroke: '#fff', strokeWidth: 2 }}
+                                    activeDot={{ r: 4, fill: '#10B981', stroke: '#fff', strokeWidth: 2, style: { pointerEvents: 'none' } }}
                                   />
                                 )}
                               </>
@@ -2211,7 +2211,7 @@ export default function App() {
                                     onMouseLeave={() => setHoveredRadarName(null)}
                                   />
                                 )}
-                                activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
+                                activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2, style: { pointerEvents: 'none' } }}
                               />
                             )}
                             {/* Target value line - only show if any target values are set.
@@ -2475,7 +2475,7 @@ export default function App() {
                                 onMouseLeave={() => setHoveredRadarName(null)}
                               />
                             )}
-                            activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2 }}
+                            activeDot={{ r: 4, fill: user.color, stroke: '#fff', strokeWidth: 2, style: { pointerEvents: 'none' } }}
                           />
                         );
                       })}
