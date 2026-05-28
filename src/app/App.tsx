@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { Plus, Trash2, Users, Settings, BarChart3, X, GripVertical, CheckCircle2, FolderOpen, ChevronDown, Info, Download, ClipboardList } from 'lucide-react';
-import { HomeIcon } from './components/icons/HomeIcon';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ProjectSelector } from './components/ProjectSelector';
@@ -1525,15 +1524,14 @@ export default function App() {
         <div className="h-14 lg:h-[88px] flex items-center lg:items-end px-4 lg:px-0">
           {/* Left: Back button + Logo + Project name */}
           <div className="flex lg:w-[399px] h-full items-center gap-3 lg:gap-4 lg:px-6 shrink-0">
-            <button
-              onClick={() => setCurrentProject(null)}
-              className="text-gray-600 hover:text-gray-900 transition flex-shrink-0 cursor-pointer hover:bg-gray-100 rounded-lg p-1"
-              title="Zurück zu Projekten"
-            >
-              <HomeIcon className="w-5 h-5 lg:w-7 lg:h-7" />
-            </button>
             <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
-              <h1 className="text-base lg:text-xl font-bold text-[#202020] leading-none truncate">SkillGapper</h1>
+              <button
+                onClick={() => setCurrentProject(null)}
+                title="Zurück zu Projekten"
+                className="text-base lg:text-xl font-bold text-[#202020] leading-none truncate cursor-pointer hover:text-blue-600 transition text-left"
+              >
+                SkillGapper
+              </button>
               <p className="text-xs lg:text-sm text-[#4a5565] leading-none truncate">{currentProject.name}</p>
             </div>
           </div>
