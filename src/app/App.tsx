@@ -1523,7 +1523,7 @@ export default function App() {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.08)]">
         <div className="h-12 lg:h-[64px] flex items-center lg:items-end px-4 lg:px-0">
           {/* Left: Back button + Logo + Project name */}
-          <div className="flex lg:w-[399px] h-full items-center gap-3 lg:gap-4 lg:px-6 shrink-0">
+          <div className="flex lg:w-[299px] h-full items-center gap-3 lg:gap-4 lg:px-6 shrink-0">
             <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
               <button
                 onClick={() => setCurrentProject(null)}
@@ -1719,7 +1719,7 @@ export default function App() {
       {activeTab === 'evaluation' && (
         <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Left Panel - Select Evaluator and Evaluated */}
-          <div className={`w-full lg:w-[400px] bg-white flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 ${
+          <div className={`w-full lg:w-[300px] bg-white flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 ${
             isEvaluationCenterCollapsed ? 'overflow-visible' : 'overflow-auto'
           }`}>
             <div className="p-4 lg:p-6">
