@@ -1581,7 +1581,7 @@ export default function App() {
                                 setCurrentEvaluatorId(user.id);
                                 setCurrentEvaluatedId(null);
                               }}
-                              className="w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition bg-gray-50 hover:bg-gray-100 border-2 border-transparent cursor-pointer"
+                              className="w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition bg-gray-50 hover:bg-gray-100 border border-transparent cursor-pointer"
                             >
                               <div
                                 className="w-4 h-4 rounded-full"
@@ -1597,7 +1597,7 @@ export default function App() {
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Evaluator*in
                         </label>
-                        <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border-2 border-blue-500">
+                        <div className="flex items-center gap-3 p-3 rounded-lg bg-blue-50 border border-blue-500">
                           <div
                             className="w-4 h-4 rounded-full"
                             style={{ backgroundColor: currentEvaluator?.color }}
@@ -1634,8 +1634,8 @@ export default function App() {
                                 key={user.id}
                                 className={`group w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition ${
                                   isSelected
-                                    ? 'bg-green-50 border-2 border-green-500'
-                                    : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                                    ? 'bg-green-50 border border-green-500'
+                                    : 'bg-gray-50 hover:bg-gray-100 border border-transparent'
                                 }`}
                               >
                                 <button
@@ -2215,21 +2215,15 @@ export default function App() {
                     <h3 className="text-xl font-medium">Alle User</h3>
                   </div>
                   <div className="flex flex-wrap gap-4">
-                    {users.map(user => {
-                      const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
-                      return (
-                        <div key={user.id} className="flex items-center gap-2">
-                          <div
-                            className="w-4 h-4 rounded-full"
-                            style={{ backgroundColor: user.color }}
-                          />
-                          <span className="text-sm font-medium">{user.name}</span>
-                          <span className="text-xs text-gray-500">
-                            ({evaluatorCount} {evaluatorCount !== 1 ? 'Evaluationen' : 'Evaluation'})
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {users.map(user => (
+                      <div key={user.id} className="flex items-center gap-2">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: user.color }}
+                        />
+                        <span className="text-sm font-medium">{user.name}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
