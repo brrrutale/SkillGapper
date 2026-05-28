@@ -2003,26 +2003,41 @@ export default function App() {
       )}
 
       {activeTab === 'results' && (
-        <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-50">
-          <div className="max-w-full mx-auto px-0 lg:px-4">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-              <h2 className="text-xl lg:text-2xl font-medium">Evaluationsergebnisse</h2>
-              
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 lg:gap-4">
-                {/* View Selector Dropdown */}
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <label className="text-sm text-gray-600 font-medium whitespace-nowrap">Ansicht:</label>
-                  <select
-                    value={resultsView}
-                    onChange={(e) => setResultsView(e.target.value as 'individual' | 'global')}
-                    className="px-3 lg:px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm font-medium flex-1 sm:flex-initial"
-                  >
-                    <option value="individual">Einzelne User</option>
-                    <option value="global">Globale Übersicht</option>
-                  </select>
-                </div>
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          {/* Left Panel - View Selector (same width / look as the Evaluation panel) */}
+          <div className="w-full lg:w-[300px] bg-white flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 overflow-auto">
+            <div className="p-4 lg:p-6">
+              <h2 className="text-lg lg:text-xl font-medium text-[#202020] mb-4 lg:mb-6">Ansicht</h2>
+              <div className="space-y-2">
+                <button
+                  onClick={() => setResultsView('individual')}
+                  className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition cursor-pointer border-2 ${
+                    resultsView === 'individual'
+                      ? 'bg-blue-50 border-blue-500'
+                      : 'bg-gray-50 hover:bg-gray-100 border-transparent'
+                  }`}
+                >
+                  <BarChart3 className={`w-4 h-4 flex-shrink-0 ${resultsView === 'individual' ? 'text-blue-600' : 'text-gray-500'}`} />
+                  <span className="font-medium text-left flex-1">Einzelne User</span>
+                </button>
+                <button
+                  onClick={() => setResultsView('global')}
+                  className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition cursor-pointer border-2 ${
+                    resultsView === 'global'
+                      ? 'bg-blue-50 border-blue-500'
+                      : 'bg-gray-50 hover:bg-gray-100 border-transparent'
+                  }`}
+                >
+                  <Users className={`w-4 h-4 flex-shrink-0 ${resultsView === 'global' ? 'text-blue-600' : 'text-gray-500'}`} />
+                  <span className="font-medium text-left flex-1">Globale Übersicht</span>
+                </button>
               </div>
             </div>
+          </div>
+
+          <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-50">
+            <div className="max-w-full mx-auto px-0 lg:px-4">
+              <h2 className="text-xl lg:text-2xl font-medium mb-6">Evaluationsergebnisse</h2>
 
             {/* Select All Checkbox (only in export mode) */}
             {showExportMode && resultsView === 'individual' && users.length > 0 && (
@@ -2690,14 +2705,23 @@ export default function App() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       )}
 
       {/* Export Tab */}
       {activeTab === 'export' && (
-        <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-50">
-          <div className="max-w-2xl mx-auto">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          {/* Left Panel (placeholder for future export menu items) */}
+          <div className="w-full lg:w-[300px] bg-white flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 overflow-auto">
+            <div className="p-4 lg:p-6">
+              <h2 className="text-lg lg:text-xl font-medium text-[#202020]">Export</h2>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-50">
+            <div className="max-w-2xl mx-auto">
             <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6">
               <h2 className="text-xl font-bold mb-6">PDF Export</h2>
 
@@ -2799,6 +2823,7 @@ export default function App() {
                   {isExporting ? 'Exportiere...' : `PDF exportieren (${selectedUsersForExport.length + (includeGlobalOverview ? 1 : 0)} ${selectedUsersForExport.length + (includeGlobalOverview ? 1 : 0) === 1 ? 'Seite' : 'Seiten'})`}
                 </button>
               </div>
+            </div>
             </div>
           </div>
         </div>
