@@ -1521,7 +1521,7 @@ export default function App() {
       
       {/* Header */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-50 shadow-[0px_2px_8px_0px_rgba(0,0,0,0.08)]">
-        <div className="h-14 lg:h-[88px] flex items-center lg:items-end px-4 lg:px-0">
+        <div className="h-12 lg:h-[64px] flex items-center lg:items-end px-4 lg:px-0">
           {/* Left: Back button + Logo + Project name */}
           <div className="flex lg:w-[399px] h-full items-center gap-3 lg:gap-4 lg:px-6 shrink-0">
             <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
