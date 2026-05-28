@@ -2512,10 +2512,7 @@ export default function App() {
                     onChange={() => setIncludeGlobalOverview(!includeGlobalOverview)}
                     className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
-                  <div className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-gray-600" />
-                    <span className="font-medium">Globale Übersicht</span>
-                  </div>
+                  <span className="font-medium">Globale Übersicht</span>
                 </label>
               </div>
 
