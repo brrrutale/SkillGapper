@@ -1585,24 +1585,13 @@ export default function App() {
             <button
               onClick={() => setActiveTab('results')}
               className={`flex items-center gap-2 px-4 py-3 rounded-t-lg transition cursor-pointer border-l border-r border-t ${
-                activeTab === 'results'
+                activeTab === 'results' || activeTab === 'export'
                   ? 'bg-[#f9fafb] border-gray-200 shadow-[1px_0px_4px_0px_rgba(0,0,0,0.1)] text-[#155dfc]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
               <span className="font-medium text-base">Ergebnisse</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('export')}
-              className={`flex items-center gap-2 px-4 py-3 rounded-t-lg transition cursor-pointer border-l border-r border-t ${
-                activeTab === 'export'
-                  ? 'bg-[#f9fafb] border-gray-200 shadow-[1px_0px_4px_0px_rgba(0,0,0,0.1)] text-[#155dfc]'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              <Download className="w-4 h-4" />
-              <span className="font-medium text-base">Export</span>
             </button>
           </div>
 
@@ -1672,20 +1661,6 @@ export default function App() {
             >
               <BarChart3 className="w-5 h-5" />
               <span className="font-medium">Ergebnisse</span>
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('export');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition cursor-pointer ${
-                activeTab === 'export'
-                  ? 'bg-[#dbeafe] text-[#155dfc]'
-                  : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              <Download className="w-5 h-5" />
-              <span className="font-medium">Export</span>
             </button>
 
             {/* Mobile Save Status */}
@@ -2032,6 +2007,17 @@ export default function App() {
                   <span className="font-medium text-left flex-1">Globale Übersicht</span>
                 </button>
               </div>
+            </div>
+
+            {/* Export Button — bottom of panel (Desktop only, same slot as Einstellungen) */}
+            <div className="hidden lg:block p-4 lg:p-6 border-t border-gray-200 mt-auto">
+              <button
+                onClick={() => setActiveTab('export')}
+                className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-[8px] hover:bg-blue-700 transition text-sm cursor-pointer w-full justify-center font-medium"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export</span>
+              </button>
             </div>
           </div>
 
