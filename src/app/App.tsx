@@ -1810,6 +1810,7 @@ export default function App() {
                             const hasEvaluation = evaluations.some(
                               e => e.evaluatorId === currentEvaluatorId && e.evaluatedUserId === user.id
                             );
+                            const isComplete = isEvaluationComplete(currentEvaluatorId, user.id);
                             const isSelected = currentEvaluatedId === user.id;
                             return (
                               <div
@@ -1831,17 +1832,25 @@ export default function App() {
                                   <span className="flex-1 text-left font-medium">{user.name}</span>
                                 </button>
                                 {hasEvaluation && (
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      resetEvaluationForPerson(currentEvaluatorId, user.id);
-                                    }}
-                                    className="text-xs text-red-600 hover:text-red-700 font-medium cursor-pointer flex items-center gap-1 ml-2 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Evaluation zurücksetzen"
-                                  >
-                                    <Trash2 className="w-3 h-3" />
-                                    Reset
-                                  </button>
+                                  <div className="relative ml-2 flex items-center">
+                                    {isComplete && (
+                                      <CheckCircle2
+                                        className="w-5 h-5 text-green-600 group-hover:opacity-0 transition-opacity"
+                                        aria-label="Alle Skills evaluiert"
+                                      />
+                                    )}
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        resetEvaluationForPerson(currentEvaluatorId, user.id);
+                                      }}
+                                      className={`text-xs text-red-600 hover:text-red-700 font-medium cursor-pointer flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${isComplete ? 'absolute right-0' : ''}`}
+                                      title="Evaluation zurücksetzen"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                      Reset
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             );
