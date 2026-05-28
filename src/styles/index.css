@@ -1,3 +1,13 @@
 @import './fonts.css';
 @import './tailwind.css';
 @import './theme.css';
+
+/* Radar polygons capture pointer events only on their stroke (the visible
+   line), not their fill. Without this, the topmost polygon (rendered last)
+   eats hover events anywhere inside its area — so hovering on the Selbst
+   vertex while it's inside the larger Fremd polygon would never trigger
+   the Selbst onMouseEnter. With pointer-events: stroke, the fill is a
+   pass-through and the underlying hit-zone circles can fire. */
+.recharts-radar .recharts-polygon {
+  pointer-events: stroke;
+}
