@@ -11,3 +11,17 @@
 .recharts-radar .recharts-polygon {
   pointer-events: stroke;
 }
+
+/* Replace the default Recharts tooltip slide animation (transform-based,
+   slides in from the chart corner) with a soft fade-in at the cursor
+   position. */
+.recharts-tooltip-wrapper {
+  transition: none !important;
+}
+.recharts-tooltip-wrapper > * {
+  animation: tooltip-fade-in 140ms ease-out;
+}
+@keyframes tooltip-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
