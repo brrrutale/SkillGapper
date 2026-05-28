@@ -1865,7 +1865,6 @@ export default function App() {
 
           <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-50">
             <div className="max-w-full mx-auto px-0 lg:px-4">
-              <h2 className="text-xl lg:text-2xl font-medium mb-6">Evaluationsergebnisse</h2>
 
             {/* Select All Checkbox (only in export mode) */}
             {showExportMode && resultsView === 'individual' && users.length > 0 && (
