@@ -1986,7 +1986,7 @@ export default function App() {
               <div className="space-y-2">
                 <button
                   onClick={() => setResultsView('individual')}
-                  className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition cursor-pointer border-2 ${
+                  className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition cursor-pointer border ${
                     resultsView === 'individual'
                       ? 'bg-blue-50 border-blue-500'
                       : 'bg-gray-50 hover:bg-gray-100 border-transparent'
@@ -1997,7 +1997,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={() => setResultsView('global')}
-                  className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition cursor-pointer border-2 ${
+                  className={`w-full flex items-center gap-3 py-[10px] px-3 rounded-[8px] transition cursor-pointer border ${
                     resultsView === 'global'
                       ? 'bg-blue-50 border-blue-500'
                       : 'bg-gray-50 hover:bg-gray-100 border-transparent'
