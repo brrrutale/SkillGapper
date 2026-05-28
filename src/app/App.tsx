@@ -2502,28 +2502,6 @@ export default function App() {
                 Wähle aus, welche Charts du exportieren möchtest.
               </p>
 
-              {/* Select All */}
-              <div className="border-b border-gray-200 pb-4 mb-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsersForExport.length === users.length && includeGlobalOverview}
-                    onChange={() => {
-                      const allSelected = selectedUsersForExport.length === users.length && includeGlobalOverview;
-                      if (allSelected) {
-                        setSelectedUsersForExport([]);
-                        setIncludeGlobalOverview(false);
-                      } else {
-                        setSelectedUsersForExport(users.map(u => u.id));
-                        setIncludeGlobalOverview(true);
-                      }
-                    }}
-                    className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <span className="font-medium">Alles auswählen</span>
-                </label>
-              </div>
-
               {/* Global Overview Option */}
               <div className="mb-6">
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Übersicht</h3>
@@ -2543,7 +2521,19 @@ export default function App() {
 
               {/* Individual Users */}
               <div>
-                <h3 className="text-sm font-medium text-gray-700 mb-3">Einzelne User ({users.length})</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium text-gray-700">Einzelne User ({users.length})</h3>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const allSelected = selectedUsersForExport.length === users.length;
+                      setSelectedUsersForExport(allSelected ? [] : users.map(u => u.id));
+                    }}
+                    className="text-sm font-medium text-blue-600 hover:text-blue-700 cursor-pointer"
+                  >
+                    {selectedUsersForExport.length === users.length ? 'Alle abwählen' : 'Alle auswählen'}
+                  </button>
+                </div>
                 <div className="space-y-2">
                   {users.map(user => {
                     const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
