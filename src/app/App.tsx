@@ -169,6 +169,7 @@ export default function App() {
   const [includeGlobalOverview, setIncludeGlobalOverview] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportMode, setShowExportMode] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [template, setTemplate] = useState<Template>({
     skills: makeDefaultSkills(),
     ratingLevels: [...DEFAULT_RATING_LEVELS],
@@ -1585,7 +1586,7 @@ export default function App() {
             <button
               onClick={() => setActiveTab('results')}
               className={`flex items-center gap-2 px-4 py-3 rounded-t-lg transition cursor-pointer border-l border-r border-t ${
-                activeTab === 'results' || activeTab === 'export'
+                activeTab === 'results'
                   ? 'bg-[#f9fafb] border-gray-200 shadow-[1px_0px_4px_0px_rgba(0,0,0,0.1)] text-[#155dfc]'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
@@ -2012,7 +2013,7 @@ export default function App() {
             {/* Export Button — bottom of panel (Desktop only, same slot as Einstellungen) */}
             <div className="hidden lg:block p-4 lg:p-6 border-t border-gray-200 mt-auto">
               <button
-                onClick={() => setActiveTab('export')}
+                onClick={() => setShowExportModal(true)}
                 className="flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-[8px] hover:bg-blue-700 transition text-sm cursor-pointer w-full justify-center font-medium"
               >
                 <Download className="w-4 h-4" />
@@ -2364,50 +2365,6 @@ export default function App() {
               })}
               </div>
               
-              {/* Export Button - Floating (only in individual view) */}
-              {users.length > 0 && (
-                <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
-                  {!showExportMode ? (
-                    <button
-                      onClick={() => setShowExportMode(true)}
-                      className="flex items-center justify-center gap-2 px-6 py-[10px] bg-blue-600 text-white rounded-[8px] hover:bg-blue-700 transition font-medium shadow-xl hover:shadow-2xl cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      PDF Export
-                    </button>
-                  ) : (
-                    <div className="flex flex-col gap-3">
-                      <button
-                        onClick={exportUserChartsToPDF}
-                        disabled={isExporting || selectedUsersForExport.length === 0}
-                        className="flex items-center justify-center gap-2 px-6 py-[10px] bg-blue-600 text-white rounded-[8px] hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition font-medium shadow-xl cursor-pointer"
-                      >
-                        {isExporting ? (
-                          <>
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                            Exportiere...
-                          </>
-                        ) : (
-                          <>
-                            <Download className="w-5 h-5" />
-                            PDF Erstellen ({selectedUsersForExport.length})
-                          </>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowExportMode(false);
-                          setSelectedUsersForExport([]);
-                        }}
-                        disabled={isExporting}
-                        className="px-6 py-[10px] bg-gray-200 text-gray-700 rounded-[8px] hover:bg-gray-300 disabled:opacity-50 transition font-medium shadow-lg cursor-pointer"
-                      >
-                        Abbrechen
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
               </>
             ) : (
               // Global View - All users overlaid on one chart
@@ -2415,14 +2372,6 @@ export default function App() {
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-xl font-medium">Alle User</h3>
-                    <button
-                      onClick={exportGlobalChartToPDF}
-                      disabled={isExporting}
-                      className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition text-sm cursor-pointer"
-                    >
-                      <Download className="w-4 h-4" />
-                      {isExporting ? 'Exportiere...' : 'PDF Export'}
-                    </button>
                   </div>
                   <div className="flex flex-wrap gap-4">
                     {users.map(user => {
@@ -2696,21 +2645,25 @@ export default function App() {
         </div>
       )}
 
-      {/* Export Tab */}
-      {activeTab === 'export' && (
-        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-          {/* Left Panel (placeholder for future export menu items) */}
-          <div className="w-full lg:w-[300px] bg-white flex flex-col border-b lg:border-b-0 lg:border-r border-gray-200 overflow-auto">
-            <div className="p-4 lg:p-6">
-              <h2 className="text-lg lg:text-xl font-medium text-[#202020]">Export</h2>
+      {/* Export Modal — opened from the Ergebnisse panel's Export button */}
+      {showExportModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-0 lg:p-4" onClick={() => setShowExportModal(false)}>
+          <div
+            className="bg-white rounded-none lg:rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] w-full h-full lg:max-w-2xl lg:w-full lg:max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 lg:p-6 border-b border-[#ddd]">
+              <h2 className="text-xl lg:text-2xl font-bold text-gray-900">PDF Export</h2>
+              <button
+                onClick={() => setShowExportModal(false)}
+                className="text-gray-500 hover:text-gray-700 p-2 rounded-[8px] hover:bg-gray-100 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
             </div>
-          </div>
 
-          <div className="flex-1 overflow-auto p-4 lg:p-8 bg-gray-50">
-            <div className="max-w-2xl mx-auto">
-            <div className="bg-white rounded-lg shadow-[0px_0px_2px_0px_rgba(0,0,0,0.16),0px_4px_8px_0px_rgba(0,0,0,0.08)] p-6">
-              <h2 className="text-xl font-bold mb-6">PDF Export</h2>
-
+            <div className="flex-1 overflow-auto p-4 lg:p-6">
               <p className="text-gray-600 mb-6">
                 Wähle aus, welche Charts du exportieren möchtest.
               </p>
@@ -2755,7 +2708,7 @@ export default function App() {
               </div>
 
               {/* Individual Users */}
-              <div className="mb-6">
+              <div>
                 <h3 className="text-sm font-medium text-gray-700 mb-3">Einzelne User ({users.length})</h3>
                 <div className="space-y-2">
                   {users.map(user => {
@@ -2764,8 +2717,8 @@ export default function App() {
                     return (
                       <label
                         key={user.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg transition cursor-pointer ${
-                          isSelected ? 'bg-blue-50 border-2 border-blue-500' : 'bg-gray-50 hover:bg-gray-100 border-2 border-transparent'
+                        className={`flex items-center gap-3 p-3 rounded-lg transition cursor-pointer border ${
+                          isSelected ? 'bg-blue-50 border-blue-500' : 'bg-gray-50 hover:bg-gray-100 border-transparent'
                         }`}
                       >
                         <input
@@ -2793,23 +2746,25 @@ export default function App() {
                   })}
                 </div>
               </div>
-
-              {/* Export Button */}
-              <div className="pt-4 border-t border-gray-200">
-                <button
-                  onClick={exportFromExportTab}
-                  disabled={isExporting || (selectedUsersForExport.length === 0 && !includeGlobalOverview)}
-                  className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition cursor-pointer ${
-                    isExporting || (selectedUsersForExport.length === 0 && !includeGlobalOverview)
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
-                  }`}
-                >
-                  <Download className="w-5 h-5" />
-                  {isExporting ? 'Exportiere...' : `PDF exportieren (${selectedUsersForExport.length + (includeGlobalOverview ? 1 : 0)} ${selectedUsersForExport.length + (includeGlobalOverview ? 1 : 0) === 1 ? 'Seite' : 'Seiten'})`}
-                </button>
-              </div>
             </div>
+
+            {/* Modal Footer / Export Button */}
+            <div className="p-4 lg:p-6 border-t border-[#ddd]">
+              <button
+                onClick={async () => {
+                  await exportFromExportTab();
+                  if (!isExporting) setShowExportModal(false);
+                }}
+                disabled={isExporting || (selectedUsersForExport.length === 0 && !includeGlobalOverview)}
+                className={`w-full flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition cursor-pointer ${
+                  isExporting || (selectedUsersForExport.length === 0 && !includeGlobalOverview)
+                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                }`}
+              >
+                <Download className="w-5 h-5" />
+                {isExporting ? 'Exportiere...' : `PDF exportieren (${selectedUsersForExport.length + (includeGlobalOverview ? 1 : 0)} ${selectedUsersForExport.length + (includeGlobalOverview ? 1 : 0) === 1 ? 'Seite' : 'Seiten'})`}
+              </button>
             </div>
           </div>
         </div>
