@@ -5,7 +5,7 @@ import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ProjectSelector } from './components/ProjectSelector';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+import 'svg2pdf.js';
 import { dataProvider, type Project, type User, type Skill, type Evaluation, type Template, type RatingLevel } from '@/lib/dataProvider';
 
 // SVG Pfad für das Chart-Icon (war vorher in Figma-Import)
@@ -1121,169 +1121,6 @@ export default function App() {
     return chartData;
   };
 
-  // Export selected users as PDF
-  const exportUserChartsToPDF = async () => {
-    if (selectedUsersForExport.length === 0) {
-      alert('Bitte wähle mindestens einen User zum Exportieren aus.');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-
-      for (let i = 0; i < selectedUsersForExport.length; i++) {
-        const userId = selectedUsersForExport[i];
-        const user = users.find(u => u.id === userId);
-        if (!user) continue;
-
-        // Find the chart element for this user
-        const chartElement = document.getElementById(`chart-${userId}`);
-        if (!chartElement) continue;
-
-        // Capture the chart as canvas
-        const canvas = await html2canvas(chartElement, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          logging: false,
-        });
-
-        // Add new page if not the first chart
-        if (i > 0) {
-          pdf.addPage();
-        }
-
-        // Add user name as title
-        pdf.setFontSize(16);
-        pdf.text(user.name, margin, margin + 5);
-
-        // Calculate image dimensions to fit page
-        const imgWidth = pageWidth - (margin * 2);
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-        const yPos = margin + 15;
-
-        // Add image to PDF
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', margin, yPos, imgWidth, imgHeight);
-
-        // Add evaluation count
-        const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === userId).length;
-        pdf.setFontSize(10);
-        pdf.text(
-          `${evaluatorCount} Evaluation${evaluatorCount !== 1 ? 'en' : ''}`,
-          margin,
-          yPos + imgHeight + 10
-        );
-      }
-
-      // Save the PDF
-      pdf.save('skill-gap-analyse.pdf');
-      
-      // Close export mode and clear selections after successful export
-      setShowExportMode(false);
-      setSelectedUsersForExport([]);
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Fehler beim Exportieren der PDF.');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  // Export global chart (all users overlay) as PDF
-  const exportGlobalChartToPDF = async () => {
-    setIsExporting(true);
-    try {
-      // Find the global chart element (just the SVG chart, not the whole container)
-      const chartElement = document.getElementById('global-chart');
-      if (!chartElement) {
-        alert('Chart nicht gefunden.');
-        setIsExporting(false);
-        return;
-      }
-
-      // Capture the chart as canvas with ignoreElements to skip problematic CSS
-      const canvas = await html2canvas(chartElement, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false,
-        useCORS: true,
-        onclone: (clonedDoc) => {
-          // Convert any oklch colors to rgb in the cloned document
-          const allElements = clonedDoc.querySelectorAll('*');
-          allElements.forEach((el) => {
-            const computedStyle = window.getComputedStyle(el as Element);
-            const bgColor = computedStyle.backgroundColor;
-            const color = computedStyle.color;
-            if (bgColor.includes('oklch')) {
-              (el as HTMLElement).style.backgroundColor = '#ffffff';
-            }
-            if (color.includes('oklch')) {
-              (el as HTMLElement).style.color = '#000000';
-            }
-          });
-        }
-      });
-
-      const pdf = new jsPDF('l', 'mm', 'a4'); // Landscape for better chart display
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 15;
-
-      // Add title
-      pdf.setFontSize(18);
-      pdf.text('Skill-Gap Analyse - Alle User', margin, margin + 5);
-
-      // Add project name
-      if (currentProject) {
-        pdf.setFontSize(12);
-        pdf.text(currentProject.name, margin, margin + 12);
-      }
-
-      // Add legend (user names with colors)
-      let legendY = margin + 20;
-      pdf.setFontSize(10);
-      users.forEach((user, index) => {
-        const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
-        // Draw colored circle
-        pdf.setFillColor(user.color);
-        pdf.circle(margin + 2, legendY + (index * 5), 1.5, 'F');
-        // Draw user name
-        pdf.setTextColor(0, 0, 0);
-        pdf.text(`${user.name} (${evaluatorCount} Evaluation${evaluatorCount !== 1 ? 'en' : ''})`, margin + 6, legendY + (index * 5) + 0.5);
-      });
-
-      // Calculate image dimensions to fit page
-      const chartStartY = legendY + (users.length * 5) + 5;
-      const availableHeight = pageHeight - chartStartY - margin;
-      const imgWidth = pageWidth - (margin * 2);
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-      // Scale down if too tall
-      const finalHeight = Math.min(imgHeight, availableHeight);
-      const finalWidth = (finalHeight === availableHeight)
-        ? (canvas.width * availableHeight) / canvas.height
-        : imgWidth;
-
-      const xPos = (pageWidth - finalWidth) / 2; // Center horizontally
-
-      // Add image to PDF
-      const imgData = canvas.toDataURL('image/png');
-      pdf.addImage(imgData, 'PNG', xPos, chartStartY, finalWidth, finalHeight);
-
-      // Save the PDF
-      pdf.save('skill-gap-analyse-global.pdf');
-    } catch (error) {
-      console.error('Error exporting PDF:', error);
-      alert('Fehler beim Exportieren der PDF: ' + (error as Error).message);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   // Toggle user selection for export
   const toggleUserSelection = (userId: string) => {
     setSelectedUsersForExport(prev => 
@@ -1311,49 +1148,47 @@ export default function App() {
 
     setIsExporting(true);
     try {
-      // Create PDF in landscape A4 format
-      const pdf = new jsPDF('l', 'mm', 'a4'); // 'l' = landscape
-      const pageWidth = pdf.internal.pageSize.getWidth();  // 297mm
+      // Landscape A4. svg2pdf renders the Recharts SVG directly as PDF
+      // vector — no html2canvas, no pixelation when zooming the PDF.
+      const pdf = new jsPDF('l', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();   // 297mm
       const pageHeight = pdf.internal.pageSize.getHeight(); // 210mm
       const margin = 15;
       let isFirstPage = true;
 
-      // Helper function to convert oklch colors
-      const convertOklchColors = (clonedDoc: Document) => {
-        const allElements = clonedDoc.querySelectorAll('*');
-        allElements.forEach((el) => {
-          const computedStyle = window.getComputedStyle(el as Element);
-          const bgColor = computedStyle.backgroundColor;
-          const color = computedStyle.color;
-          if (bgColor.includes('oklch')) {
-            (el as HTMLElement).style.backgroundColor = '#ffffff';
+      // Inline computed colors so svg2pdf doesn't try to parse oklch/CSS-var.
+      const inlineSvgColors = (svg: SVGElement) => {
+        svg.querySelectorAll('*').forEach((el) => {
+          const cs = window.getComputedStyle(el as Element);
+          const e = el as SVGElement;
+          // Stroke/fill come from attributes on Recharts paths; flatten
+          // anything that's still oklch/url() into hex via getComputedStyle.
+          const stroke = cs.stroke;
+          const fill = cs.fill;
+          if (stroke && stroke !== 'none' && !stroke.startsWith('rgb')) {
+            e.setAttribute('stroke', stroke);
           }
-          if (color.includes('oklch')) {
-            (el as HTMLElement).style.color = '#000000';
+          if (fill && fill !== 'none' && !fill.startsWith('rgb')) {
+            e.setAttribute('fill', fill);
           }
         });
       };
 
-      // Helper function to capture chart and add to PDF (centered)
-      const captureChartCentered = async (chartElement: HTMLElement, title: string, subtitle?: string) => {
-        const canvas = await html2canvas(chartElement, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          logging: false,
-          useCORS: true,
-          onclone: convertOklchColors
-        });
-
-        if (!isFirstPage) {
-          pdf.addPage('l'); // Always landscape
-        }
+      // Helper: place a single SVG as vector + legend below it.
+      const placeChartWithLegend = async (
+        svg: SVGElement,
+        title: string,
+        subtitle: string | undefined,
+        legend: Array<{ label: string; color: string; dashed?: boolean }>,
+      ) => {
+        if (!isFirstPage) pdf.addPage('l');
         isFirstPage = false;
 
-        // Add title (centered)
+        // Title + subtitle (centered)
         pdf.setFontSize(18);
+        pdf.setTextColor(0, 0, 0);
         pdf.text(title, pageWidth / 2, margin + 5, { align: 'center' });
 
-        // Add subtitle if provided (centered)
         let headerHeight = margin + 12;
         if (subtitle) {
           pdf.setFontSize(11);
@@ -1361,144 +1196,150 @@ export default function App() {
           headerHeight = margin + 22;
         }
 
-        // Calculate available space for chart
-        const availableWidth = pageWidth - (margin * 2);
-        const availableHeight = pageHeight - headerHeight - margin;
+        // Reserve bottom strip for legend (10mm).
+        const legendStripH = legend.length > 0 ? 12 : 0;
+        const chartTopY = headerHeight + 2;
+        const chartBottomY = pageHeight - margin - legendStripH;
+        const availableWidth = pageWidth - margin * 2;
+        const availableHeight = chartBottomY - chartTopY;
 
-        // Calculate image dimensions to fit and maintain aspect ratio
-        const canvasAspect = canvas.width / canvas.height;
-        const availableAspect = availableWidth / availableHeight;
-
-        let finalWidth: number;
-        let finalHeight: number;
-
-        if (canvasAspect > availableAspect) {
-          // Canvas is wider relative to available space - fit by width
-          finalWidth = availableWidth;
-          finalHeight = availableWidth / canvasAspect;
+        // Source viewBox so we keep the chart's aspect ratio.
+        const vb = svg.viewBox.baseVal;
+        const svgW = vb && vb.width > 0 ? vb.width : svg.clientWidth || 800;
+        const svgH = vb && vb.height > 0 ? vb.height : svg.clientHeight || 600;
+        const svgAspect = svgW / svgH;
+        const slotAspect = availableWidth / availableHeight;
+        let finalW: number;
+        let finalH: number;
+        if (svgAspect > slotAspect) {
+          finalW = availableWidth;
+          finalH = availableWidth / svgAspect;
         } else {
-          // Canvas is taller relative to available space - fit by height
-          finalHeight = availableHeight;
-          finalWidth = availableHeight * canvasAspect;
+          finalH = availableHeight;
+          finalW = availableHeight * svgAspect;
+        }
+        const chartX = (pageWidth - finalW) / 2;
+        const chartY = chartTopY + (availableHeight - finalH) / 2;
+
+        // Clone the SVG so we don't mutate the live DOM, inline colors,
+        // and ensure width/height are set (some svg2pdf builds need it).
+        const cloned = svg.cloneNode(true) as SVGElement;
+        cloned.setAttribute('width', String(svgW));
+        cloned.setAttribute('height', String(svgH));
+        inlineSvgColors(cloned);
+
+        // svg2pdf attaches a .svg() method to jsPDF. Returns a promise.
+        // The temp container keeps the clone in the DOM during conversion
+        // (svg2pdf reads layout info via getBBox), then is removed.
+        const host = document.createElement('div');
+        host.style.position = 'fixed';
+        host.style.left = '-99999px';
+        host.style.top = '0';
+        host.appendChild(cloned);
+        document.body.appendChild(host);
+        try {
+          await (pdf as unknown as {
+            svg: (s: Element, o: { x: number; y: number; width: number; height: number }) => Promise<void>;
+          }).svg(cloned, { x: chartX, y: chartY, width: finalW, height: finalH });
+        } finally {
+          host.remove();
         }
 
-        // Center the chart horizontally and vertically in available space
-        const xPos = (pageWidth - finalWidth) / 2;
-        const yPos = headerHeight + (availableHeight - finalHeight) / 2;
-
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight);
+        // Legend strip — colored swatches + labels horizontally centered.
+        if (legend.length > 0) {
+          const swatchW = 6;
+          const swatchH = 3;
+          const itemGap = 4;
+          const labelGap = 2;
+          pdf.setFontSize(10);
+          // Pre-measure to center the row
+          let totalWidth = 0;
+          legend.forEach((item, i) => {
+            totalWidth += swatchW + labelGap + pdf.getTextWidth(item.label);
+            if (i < legend.length - 1) totalWidth += itemGap * 2;
+          });
+          let cursorX = (pageWidth - totalWidth) / 2;
+          const legendY = chartBottomY + 4;
+          legend.forEach((item) => {
+            pdf.setDrawColor(item.color);
+            pdf.setFillColor(item.color);
+            if (item.dashed) {
+              pdf.setLineDashPattern([1, 1], 0);
+              pdf.setLineWidth(0.5);
+              pdf.line(cursorX, legendY + swatchH / 2, cursorX + swatchW, legendY + swatchH / 2);
+              pdf.setLineDashPattern([], 0);
+            } else {
+              pdf.rect(cursorX, legendY, swatchW, swatchH, 'F');
+            }
+            pdf.setTextColor(0, 0, 0);
+            pdf.text(item.label, cursorX + swatchW + labelGap, legendY + swatchH - 0.2);
+            cursorX += swatchW + labelGap + pdf.getTextWidth(item.label) + itemGap * 2;
+          });
+        }
       };
 
-      // Export individual user charts
+      const findSvg = (containerId: string): SVGElement | null => {
+        const container = document.getElementById(containerId);
+        if (!container) return null;
+        return container.querySelector('svg');
+      };
+
+      // Individual user charts
       for (const userId of selectedUsersForExport) {
         const user = users.find(u => u.id === userId);
         if (!user) continue;
-
-        const chartElement = document.getElementById(`offscreen-chart-${userId}`);
-        if (!chartElement) {
-          console.warn(`Chart element not found for user ${userId}`);
+        const svg = findSvg(`offscreen-chart-${userId}`);
+        if (!svg) {
+          console.warn(`SVG for user ${userId} not found`);
           continue;
         }
 
+        const { hasSelfEvaluation, hasOtherEvaluations } = calculateSeparateRatings(userId);
+        const isSeparate = showSeparateEvaluation && (hasSelfEvaluation || hasOtherEvaluations);
+        const chartData = prepareResultsChartData(userId, isSeparate);
         const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === userId).length;
-        await captureChartCentered(
-          chartElement,
+
+        const legend: Array<{ label: string; color: string; dashed?: boolean }> = [];
+        if (isSeparate) {
+          if (hasSelfEvaluation) legend.push({ label: 'Selbstevaluation', color: '#3B82F6' });
+          if (hasOtherEvaluations) legend.push({ label: 'Fremdevaluation', color: '#10B981' });
+        } else {
+          legend.push({ label: user.name, color: user.color });
+        }
+        if (chartData.some((d) => (d as { target?: number }).target !== undefined)) {
+          legend.push({ label: 'Zielwert', color: '#EF4444', dashed: true });
+        }
+
+        await placeChartWithLegend(
+          svg,
           user.name,
-          `${evaluatorCount} Evaluation${evaluatorCount !== 1 ? 'en' : ''}`
+          `${evaluatorCount} Evaluation${evaluatorCount !== 1 ? 'en' : ''}`,
+          legend,
         );
       }
 
-      // Export global overview if selected
+      // Global overview chart
       if (includeGlobalOverview) {
-        const globalChartElement = document.getElementById('offscreen-global-chart');
-        if (globalChartElement) {
-          if (!isFirstPage) {
-            pdf.addPage('l');
+        const svg = findSvg('offscreen-global-chart');
+        if (svg) {
+          const legend: Array<{ label: string; color: string; dashed?: boolean }> = users.map((u) => ({
+            label: u.name,
+            color: u.color,
+          }));
+          const globalChartData = prepareGlobalChartData();
+          if (globalChartData.some((d) => (d as { target?: number }).target !== undefined)) {
+            legend.push({ label: 'Zielwert', color: '#EF4444', dashed: true });
           }
-          isFirstPage = false;
-
-          const canvas = await html2canvas(globalChartElement, {
-            scale: 2,
-            backgroundColor: '#ffffff',
-            logging: false,
-            useCORS: true,
-            onclone: convertOklchColors
-          });
-
-          // Add title (centered)
-          pdf.setFontSize(18);
-          pdf.text('Skill-Gap Analyse - Alle User', pageWidth / 2, margin + 5, { align: 'center' });
-
-          // Add project name (centered)
-          let headerHeight = margin + 12;
-          if (currentProject) {
-            pdf.setFontSize(12);
-            pdf.text(currentProject.name, pageWidth / 2, margin + 14, { align: 'center' });
-            headerHeight = margin + 22;
-          }
-
-          // Add legend (horizontally centered, multi-column if many users)
-          const legendY = headerHeight + 5;
-          pdf.setFontSize(9);
-          const legendItemWidth = 60; // Width per legend item
-          const maxItemsPerRow = Math.floor((pageWidth - margin * 2) / legendItemWidth);
-
-          users.forEach((user, index) => {
-            const evaluatorCount = evaluations.filter(e => e.evaluatedUserId === user.id).length;
-            const row = Math.floor(index / maxItemsPerRow);
-            const col = index % maxItemsPerRow;
-
-            // Calculate starting X to center the legend
-            const itemsInThisRow = Math.min(maxItemsPerRow, users.length - row * maxItemsPerRow);
-            const rowWidth = itemsInThisRow * legendItemWidth;
-            const startX = (pageWidth - rowWidth) / 2;
-
-            const xPos = startX + col * legendItemWidth;
-            const yPos = legendY + row * 6;
-
-            // Draw colored circle
-            pdf.setFillColor(user.color);
-            pdf.circle(xPos + 2, yPos, 1.5, 'F');
-            // Draw user name
-            pdf.setTextColor(0, 0, 0);
-            pdf.text(`${user.name} (${evaluatorCount})`, xPos + 6, yPos + 0.5);
-          });
-
-          // Calculate chart area
-          const legendRows = Math.ceil(users.length / maxItemsPerRow);
-          const chartStartY = legendY + (legendRows * 6) + 5;
-          const availableWidth = pageWidth - (margin * 2);
-          const availableHeight = pageHeight - chartStartY - margin;
-
-          // Calculate image dimensions
-          const canvasAspect = canvas.width / canvas.height;
-          const availableAspect = availableWidth / availableHeight;
-
-          let finalWidth: number;
-          let finalHeight: number;
-
-          if (canvasAspect > availableAspect) {
-            finalWidth = availableWidth;
-            finalHeight = availableWidth / canvasAspect;
-          } else {
-            finalHeight = availableHeight;
-            finalWidth = availableHeight * canvasAspect;
-          }
-
-          // Center the chart
-          const xPos = (pageWidth - finalWidth) / 2;
-          const yPos = chartStartY + (availableHeight - finalHeight) / 2;
-
-          const imgData = canvas.toDataURL('image/png');
-          pdf.addImage(imgData, 'PNG', xPos, yPos, finalWidth, finalHeight);
+          await placeChartWithLegend(
+            svg,
+            'Skill-Gap Analyse — Alle User',
+            currentProject?.name,
+            legend,
+          );
         }
       }
 
-      // Save the PDF
       pdf.save('skill-gap-analyse.pdf');
-
-      // Clear selections after successful export
       setSelectedUsersForExport([]);
       setIncludeGlobalOverview(false);
     } catch (error) {
@@ -3139,9 +2980,12 @@ export default function App() {
 
       {/* Offscreen Charts Container - Always rendered but invisible, used for PDF export */}
       <div className="fixed -left-[9999px] top-0" style={{ width: '800px' }} aria-hidden="true">
-        {/* Individual User Charts */}
+        {/* Individual User Charts — rendered in the same separate-mode shape
+            as the on-screen view so the PDF mirrors what the user sees. */}
         {users.map(user => {
-          const chartData = prepareResultsChartData(user.id);
+          const { hasSelfEvaluation, hasOtherEvaluations } = calculateSeparateRatings(user.id);
+          const isSeparateOffscreen = showSeparateEvaluation && (hasSelfEvaluation || hasOtherEvaluations);
+          const chartData = prepareResultsChartData(user.id, isSeparateOffscreen);
           return (
             <div key={user.id} id={`offscreen-chart-${user.id}`} className="bg-white p-4" style={{ width: '800px', height: '600px' }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -3192,14 +3036,42 @@ export default function App() {
                     ticks={[0, 1, 2, 3, 4, 5]}
                     tick={{ fill: '#6B7280', fontSize: 13 }}
                   />
-                  <Radar
-                    name={user.name}
-                    dataKey="average"
-                    stroke={user.color}
-                    fill={user.color}
-                    fillOpacity={0.3}
-                    strokeWidth={2}
-                  />
+                  {isSeparateOffscreen ? (
+                    <>
+                      {hasSelfEvaluation && (
+                        <Radar
+                          name="Selbstevaluation"
+                          dataKey="selfEvaluation"
+                          stroke="#3B82F6"
+                          fill="#3B82F6"
+                          fillOpacity={0.2}
+                          strokeWidth={2}
+                          isAnimationActive={false}
+                        />
+                      )}
+                      {hasOtherEvaluations && (
+                        <Radar
+                          name="Fremdevaluation"
+                          dataKey="othersAverage"
+                          stroke="#10B981"
+                          fill="#10B981"
+                          fillOpacity={0.2}
+                          strokeWidth={2}
+                          isAnimationActive={false}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <Radar
+                      name={user.name}
+                      dataKey="average"
+                      stroke={user.color}
+                      fill={user.color}
+                      fillOpacity={0.3}
+                      strokeWidth={2}
+                      isAnimationActive={false}
+                    />
+                  )}
                   {chartData.some(d => d.target !== undefined) && (
                     <Radar
                       name="Zielwert"
@@ -3208,6 +3080,7 @@ export default function App() {
                       fill="transparent"
                       strokeWidth={2}
                       strokeDasharray="5 5"
+                      isAnimationActive={false}
                     />
                   )}
                 </RadarChart>
