@@ -15,6 +15,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // console.* und debugger aus dem Produktions-Bundle entfernen. Die App
+  // hat an gut zwei Dutzend Stellen Personennamen, Skill-Sets und
+  // Bewertungen in die Konsole geschrieben — das hat auf einem produktiven
+  // System nichts verloren.
+  esbuild: {
+    drop: ['console', 'debugger'],
+  },
   // Stabile Output-Dateinamen ohne Content-Hash — beim FTP-Deployment
   // einfach immer dieselben 4 Files ueberschreiben. Cache-Busting muss
   // Akamai (max-age) bzw. ein Hard-Reload uebernehmen.

@@ -10,7 +10,6 @@
 export interface AzureConfig {
   provider: 'azure';
   baseUrl: string;
-  functionKey?: string;
   teamId?: string;
 }
 
@@ -26,11 +25,12 @@ function isLocalhost(): boolean {
 }
 
 // Auto-Detect Dev vs Prod, damit das Frontend ohne Konfiguration funktioniert.
-// Die Functions sind anonymous — kein Key nötig (das Frontend-Bundle ist
-// public, ein dort eingebetteter Key wäre Fake-Security). Workspace-
-// Isolation läuft über die teamId Partition Key.
+//
+// Bewusst kein Key im Bundle — das Frontend ist public, ein eingebetteter
+// Key wäre Fake-Security. Der Zugriffsschutz sitzt stattdessen serverseitig:
+// `validate-password` gibt ein projekt-gebundenes Token aus, das der Provider
+// bei jedem Zugriff auf Projektinhalte mitschickt.
 export const config: BackendConfig = {
   provider: 'azure',
   baseUrl: isLocalhost() ? LOCAL_BASE_URL : PROD_BASE_URL,
-  teamId: 'default',
 };

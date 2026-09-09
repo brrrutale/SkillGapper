@@ -6,7 +6,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { ProjectSelector } from './components/ProjectSelector';
 import jsPDF from 'jspdf';
 import 'svg2pdf.js';
-import { dataProvider, type Project, type User, type Skill, type Evaluation, type Template, type RatingLevel } from '@/lib/dataProvider';
+import { dataProvider, clearAllTokens, type Project, type User, type Skill, type Evaluation, type Template, type RatingLevel } from '@/lib/dataProvider';
 
 // SVG Pfad für das Chart-Icon (war vorher in Figma-Import)
 const svgPaths = {
@@ -261,15 +261,13 @@ export default function App() {
 
         if (lastProjectId) {
           const lastProject = projectsData.find(p => p.id === lastProjectId);
-          if (lastProject) {
-            // Check if project has password protection
-            if (lastProject.hasPassword) {
-              // Don't auto-restore password-protected projects
-              console.log('Last project is password protected, showing project selector');
-            } else {
-              setCurrentProject(lastProject);
-              console.log('Restored last session:', lastProject.name);
-            }
+          // Passwortgeschützte Projekte werden nie automatisch geöffnet —
+          // dafür muss der Nutzer durch den Dialog. Für ungeschützte holen
+          // wir vorher das Zugriffs-Token, sonst laufen alle Folge-Requests
+          // in einen 401.
+          if (lastProject && !lastProject.hasPassword) {
+            const ok = await dataProvider.validatePassword(lastProject.id, '');
+            if (ok) setCurrentProject(lastProject);
           }
         }
 
@@ -645,12 +643,39 @@ export default function App() {
     }
   };
 
+  /**
+   * Projekt verlassen und alle projektbezogenen Spuren im Browser entfernen.
+   *
+   * Vorher blieben Projekt-ID, Evaluator/Evaluierter und ein vollständiger
+   * JSON-Snapshot der Bewertungen im localStorage liegen. Auf einem geteilten
+   * Rechner sah der nächste Nutzer damit die Daten des vorherigen.
+   */
+  const leaveProject = () => {
+    try {
+      const keys = Object.keys(localStorage);
+      for (const k of keys) {
+        if (
+          k === 'lastSelectedProjectId' ||
+          k.startsWith('lastEvaluatorId:') ||
+          k.startsWith('lastEvaluatedId:') ||
+          k.startsWith('project:')
+        ) {
+          localStorage.removeItem(k);
+        }
+      }
+    } catch { /* Storage kann blockiert sein */ }
+    clearAllTokens();
+    setCurrentEvaluatorId(null);
+    setCurrentEvaluatedId(null);
+    setCurrentProject(null);
+  };
+
   const handleDeleteProject = async (projectId: string) => {
     try {
       await dataProvider.deleteProject(projectId);
       setProjects(projects.filter(p => p.id !== projectId));
       if (currentProject?.id === projectId) {
-        setCurrentProject(null);
+        leaveProject();
       }
     } catch (error) {
       console.error('Error deleting project:', error);
@@ -697,22 +722,14 @@ export default function App() {
     console.log(`💾 Saving evaluation: ${currentEvaluatorId} → ${currentEvaluatedId}`);
 
     try {
-      // Save all evaluations to server
+      // Save all evaluations to server.
+      // Kein localStorage-Backup mehr: der Schreibpfad legte einen vollen
+      // JSON-Snapshot aller Bewertungen ab, der Lesepfad hat ihn nie
+      // zurückgespielt. Auf einem geteilten Rechner blieben damit fremde
+      // Personendaten liegen. Die Absicherung übernimmt jetzt Cosmos
+      // Continuous Backup (7 Tage Point-in-Time-Restore).
       await dataProvider.saveEvaluations(currentProject.id, evaluations);
 
-      // Also backup to localStorage
-      const localStorageKey = `project:${currentProject.id}:backup`;
-      try {
-        const existingBackup = localStorage.getItem(localStorageKey);
-        const backup = existingBackup ? JSON.parse(existingBackup) : {};
-        backup.evaluations = evaluations;
-        backup.timestamp = Date.now();
-        localStorage.setItem(localStorageKey, JSON.stringify(backup));
-      } catch (e) {
-        console.error('Failed to backup to localStorage:', e);
-      }
-
-      console.log('✅ Evaluation saved successfully');
       setEvaluationSaveStatus('saved');
 
       // Reset to idle after 2 seconds
@@ -722,29 +739,6 @@ export default function App() {
     } catch (error) {
       console.error('❌ Error saving evaluation:', error);
       setEvaluationSaveStatus('idle');
-    }
-  };
-
-  // Debug function to check what's in database
-  const debugCheckDatabase = async () => {
-    if (!currentProject) return;
-
-    console.log('🔍 === DATABASE DEBUG CHECK ===');
-    try {
-      const [templateData, usersData, evaluationsData] = await Promise.all([
-        dataProvider.getTemplate(currentProject.id),
-        dataProvider.getUsers(currentProject.id),
-        dataProvider.getEvaluations(currentProject.id)
-      ]);
-
-      console.log('📋 Template in DB:', templateData);
-      console.log('👥 Users in DB:', usersData);
-      console.log('📊 Evaluations in DB:', evaluationsData);
-
-      alert(`Database Status:\n\nTemplate: ${templateData?.skills?.length || 0} skills\nUsers: ${usersData.length} users\nEvaluations: ${evaluationsData.length} evaluations\n\nCheck console for details.`);
-    } catch (error) {
-      console.error('❌ Error checking database:', error);
-      alert('Fehler beim Abrufen der Datenbankdaten!');
     }
   };
 
@@ -1368,7 +1362,7 @@ export default function App() {
           <div className="flex lg:w-[299px] h-full items-center gap-3 lg:gap-4 lg:px-6 shrink-0">
             <div className="flex flex-col gap-0.5 lg:gap-1 min-w-0">
               <button
-                onClick={() => setCurrentProject(null)}
+                onClick={leaveProject}
                 title="Zurück zu Projekten"
                 className="text-base lg:text-xl font-bold text-[#202020] leading-none truncate cursor-pointer hover:text-blue-600 transition text-left"
               >

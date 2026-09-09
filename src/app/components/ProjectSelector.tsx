@@ -70,8 +70,20 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
       setPasswordDialogProject(project);
       setEnteredPassword('');
       setPasswordError(false);
-    } else {
+      return;
+    }
+    // Auch Projekte ohne Passwort brauchen ein Zugriffs-Token — die API gibt
+    // Inhalte nur noch gegen ein gültiges Bearer-Token heraus. Für
+    // ungeschützte Projekte stellt der Server es ohne Passwort aus.
+    const ok = await onValidatePassword(project.id, '');
+    if (ok) {
       onSelectProject(project);
+    } else {
+      // Sollte nur passieren, wenn das Projekt zwischenzeitlich geschützt
+      // oder gelöscht wurde — dann doch nach dem Passwort fragen.
+      setPasswordDialogProject(project);
+      setEnteredPassword('');
+      setPasswordError(false);
     }
   };
 
