@@ -167,8 +167,27 @@ export function rateLimitReset(key) {
     attempts.delete(key);
 }
 
-/** Client-IP fuer den Rate-Limit-Key. */
+/**
+ * Client-IP fuer den Rate-Limit-Key.
+ *
+ * Azure App Service haengt an X-Forwarded-For den Quell-Port an
+ * ("1.2.3.4:56789"). Der Port wechselt bei jeder neuen TCP-Verbindung — ohne
+ * das Abschneiden bekaeme jeder einzelne Versuch einen eigenen Zaehler-Key
+ * und der Rate-Limit wuerde nie greifen.
+ */
 export function clientIp(request) {
     const xff = request.headers.get('x-forwarded-for') || '';
-    return xff.split(',')[0].trim() || 'unknown';
+    const first = xff.split(',')[0].trim();
+    if (!first) return 'unknown';
+
+    // IPv6 in Klammern: "[2001:db8::1]:443" -> "2001:db8::1"
+    const bracketed = first.match(/^\[([^\]]+)\]/);
+    if (bracketed) return bracketed[1];
+
+    // IPv4 mit Port: genau ein Doppelpunkt -> abschneiden.
+    // Nacktes IPv6 enthaelt mehrere und bleibt unveraendert.
+    const colons = (first.match(/:/g) || []).length;
+    if (colons === 1) return first.split(':')[0];
+
+    return first;
 }
