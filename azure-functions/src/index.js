@@ -41,6 +41,7 @@ import {
 import {
     readJsonBody, validateProjectFields, guardAgainstWipe, ValidationError
 } from './lib/validate.js';
+import { audit } from './lib/audit.js';
 
 function newProjectId() {
     return crypto.randomUUID();
@@ -123,6 +124,7 @@ app.http('projectsRoot', {
                     updatedAt: Date.now()
                 };
                 const { resource } = await container.items.create(doc);
+                audit(context, request, 'project.create', { project: resource.id, name: resource.name });
                 // Direkt ein Token mitgeben, damit der Ersteller ohne
                 // zusaetzlichen Login weiterarbeiten kann.
                 return jsonResponse(request, 201, {
@@ -204,6 +206,11 @@ app.http('projectById', {
                 const { resource } = await container.items.upsert(next, {
                     accessCondition: { type: 'IfMatch', condition: ifMatch }
                 });
+                audit(context, request, 'project.update', {
+                    project: id,
+                    users: String((resource.users || []).length),
+                    passwordChanged: body.password !== undefined ? 'yes' : 'no'
+                });
                 const res = jsonResponse(request, 200, sanitizeProject(resource));
                 res.headers.ETag = resource._etag;
                 return res;
@@ -221,6 +228,7 @@ app.http('projectById', {
                     deletedAt: Date.now(),
                     updatedAt: Date.now()
                 });
+                audit(context, request, 'project.delete', { project: id, name: existing.name });
                 return emptyResponse(request, 204);
             }
 
@@ -248,6 +256,7 @@ app.http('validatePassword', {
         try {
             const limit = rateLimitCheck(rlKey);
             if (!limit.allowed) {
+                audit(context, request, 'login.ratelimited', { project: id });
                 const res = jsonResponse(request, 429, { error: 'too many attempts' });
                 res.headers['Retry-After'] = String(limit.retryAfterSec);
                 return res;
@@ -261,6 +270,7 @@ app.http('validatePassword', {
             // welche Projekt-IDs existieren.
             if (!resource || resource.deletedAt) {
                 rateLimitRecord(rlKey);
+                audit(context, request, 'login.failed', { project: id, reason: 'no such project' });
                 return jsonResponse(request, 200, { valid: false });
             }
 
@@ -269,6 +279,7 @@ app.http('validatePassword', {
 
             if (!ok) {
                 rateLimitRecord(rlKey);
+                audit(context, request, 'login.failed', { project: id, reason: 'wrong password' });
                 return jsonResponse(request, 200, { valid: false });
             }
 

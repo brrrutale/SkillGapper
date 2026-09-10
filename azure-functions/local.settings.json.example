@@ -1,15 +1,16 @@
 {
-    "IsEncrypted": false,
-    "Values": {
-        "AzureWebJobsStorage": "UseDevelopmentStorage=true",
-        "FUNCTIONS_WORKER_RUNTIME": "node",
-        "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://pricetagger.documents.azure.com:443/;AccountKey=...;",
-        "COSMOS_DATABASE": "skillgapper",
-        "COSMOS_CONTAINER": "projects",
-        "ALLOWED_ORIGINS": "http://localhost:5173,http://localhost:8765"
-    },
-    "Host": {
-        "CORS": "*",
-        "CORSCredentials": false
-    }
+  "IsEncrypted": false,
+  "Values": {
+    "AzureWebJobsStorage": "UseDevelopmentStorage=true",
+    "FUNCTIONS_WORKER_RUNTIME": "node",
+    "COSMOS_CONNECTION_STRING": "AccountEndpoint=https://pricetagger.documents.azure.com:443/;AccountKey=...;",
+    "COSMOS_DATABASE": "skillgapper",
+    "COSMOS_CONTAINER": "projects",
+    "ALLOWED_ORIGINS": "http://localhost:8765"
+  },
+  "Host": {
+    "LocalHttpPort": 7072,
+    "CORS": "*",
+    "CORSCredentials": false
+  }
 }

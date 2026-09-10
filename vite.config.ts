@@ -39,6 +39,13 @@ export default defineConfig({
     },
   },
   server: {
+    // Fester Port statt Vites Default 5173: SkillGapper soll parallel zu
+    // anderen lokalen Projekten laufen können, ohne dass Vite auf einen
+    // freien Nachbarport ausweicht und die API-/CORS-Konfiguration ins
+    // Leere zeigt. Der lokale Functions-Server liegt entsprechend auf 7072
+    // (siehe azure-functions/local.settings.json).
+    port: 8765,
+    strictPort: true,
     // Proxy für API-Anfragen während der Entwicklung
     // Leitet /api/* Anfragen an MAMP weiter
     proxy: {

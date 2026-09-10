@@ -3,7 +3,7 @@ import type { DataProvider, Project, User, Evaluation, Template, Skill } from '.
 export interface AzureConfig {
   /**
    * Base URL of the Azure Function App, e.g. https://skillgapper-api.azurewebsites.net
-   * In dev, you can point this at http://localhost:7071 (running `func start` in azure-functions/).
+   * In dev, you can point this at http://localhost:7072 (running `func start` in azure-functions/).
    */
   baseUrl: string;
   /** Logical team / workspace id — informational only; the server pins the partition. */

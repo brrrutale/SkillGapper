@@ -13,11 +13,11 @@ Skill-Gap-Analyse Tool mit Spider-Chart Visualisierung. Mehrere Personen evaluie
 
 ```bash
 npm install
-npm run dev      # Vite Dev-Server auf http://localhost:5173
+npm run dev      # Vite Dev-Server auf http://localhost:8765
 npm run build    # Produktions-Build → dist/
 ```
 
-Das Frontend erkennt automatisch ob es auf `localhost` läuft → benutzt die lokale Azure-Functions Instanz (`http://localhost:7071`), sonst die produktive Function-App `skillgapper-api` in Azure.
+Das Frontend erkennt automatisch ob es auf `localhost` läuft → benutzt die lokale Azure-Functions Instanz (`http://localhost:7072`), sonst die produktive Function-App `skillgapper-api` in Azure.
 
 ## Setup (Backend, lokal)
 
@@ -26,7 +26,7 @@ cd azure-functions
 cp local.settings.json.example local.settings.json
 # COSMOS_CONNECTION_STRING aus Azure Portal → Cosmos `pricetagger` → Keys einfügen
 npm install
-npm start        # http://localhost:7071
+npm start        # http://localhost:7072
 ```
 
 Voraussetzungen:

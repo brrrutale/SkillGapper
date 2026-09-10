@@ -13,7 +13,7 @@ interface ProjectSelectorProps {
   projects: Project[];
   onSelectProject: (project: Project) => void;
   onCreateProject: (name: string, password?: string) => void;
-  onDeleteProject: (projectId: string) => void;
+  onDeleteProject: (projectId: string) => Promise<boolean>;
   onUpdateProject: (projectId: string, name: string) => void;
   onValidatePassword: (projectId: string, password: string) => Promise<boolean>;
 }
@@ -27,14 +27,19 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
   const [editingProjectName, setEditingProjectName] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Password dialog state
+  // Password dialog state. Der Dialog wird fuer zwei Faelle benutzt: ein
+  // Projekt oeffnen und ein Projekt loeschen. Beides braucht ein Token, und
+  // bei geschuetzten Projekten heisst das: Passwort eingeben.
   const [passwordDialogProject, setPasswordDialogProject] = useState<Project | null>(null);
+  const [passwordIntent, setPasswordIntent] = useState<'open' | 'delete'>('open');
   const [enteredPassword, setEnteredPassword] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [showEnteredPassword, setShowEnteredPassword] = useState(false);
 
   // Delete confirmation dialog state
   const [deleteDialogProject, setDeleteDialogProject] = useState<Project | null>(null);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleting, setDeleting] = useState(false);
 
   // Create form error state
   const [createError, setCreateError] = useState('');
@@ -65,11 +70,17 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
     setShowCreateForm(false);
   };
 
+  /** Oeffnet den Passwort-Dialog fuer den gegebenen Zweck. */
+  const askForPassword = (project: Project, intent: 'open' | 'delete') => {
+    setPasswordIntent(intent);
+    setPasswordDialogProject(project);
+    setEnteredPassword('');
+    setPasswordError(false);
+  };
+
   const handleSelectProject = async (project: Project) => {
     if (project.hasPassword) {
-      setPasswordDialogProject(project);
-      setEnteredPassword('');
-      setPasswordError(false);
+      askForPassword(project, 'open');
       return;
     }
     // Auch Projekte ohne Passwort brauchen ein Zugriffs-Token — die API gibt
@@ -81,23 +92,69 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
     } else {
       // Sollte nur passieren, wenn das Projekt zwischenzeitlich geschützt
       // oder gelöscht wurde — dann doch nach dem Passwort fragen.
-      setPasswordDialogProject(project);
-      setEnteredPassword('');
-      setPasswordError(false);
+      askForPassword(project, 'open');
     }
+  };
+
+  /**
+   * Loeschen braucht dasselbe Token wie das Oeffnen — die API laesst DELETE
+   * ohne gueltiges Bearer-Token nicht mehr zu. Fuer ungeschuetzte Projekte
+   * holen wir es still ab, fuer geschuetzte fragen wir nach dem Passwort.
+   */
+  const runDelete = async (project: Project) => {
+    setDeleting(true);
+    setDeleteError('');
+    const ok = await onDeleteProject(project.id);
+    setDeleting(false);
+    if (ok) {
+      setDeleteDialogProject(null);
+    } else {
+      setDeleteError('Löschen fehlgeschlagen. Bitte erneut versuchen.');
+    }
+  };
+
+  const handleConfirmDelete = async () => {
+    const project = deleteDialogProject;
+    if (!project) return;
+
+    if (project.hasPassword) {
+      setDeleteDialogProject(null);
+      askForPassword(project, 'delete');
+      return;
+    }
+
+    setDeleting(true);
+    setDeleteError('');
+    const authorized = await onValidatePassword(project.id, '');
+    setDeleting(false);
+    if (!authorized) {
+      // Zwischenzeitlich geschuetzt worden — dann eben mit Passwort.
+      setDeleteDialogProject(null);
+      askForPassword(project, 'delete');
+      return;
+    }
+    await runDelete(project);
   };
 
   const handlePasswordSubmit = async () => {
     if (!passwordDialogProject) return;
 
-    const valid = await onValidatePassword(passwordDialogProject.id, enteredPassword);
-    if (valid) {
-      onSelectProject(passwordDialogProject);
-      setPasswordDialogProject(null);
-      setEnteredPassword('');
-      setPasswordError(false);
-    } else {
+    const project = passwordDialogProject;
+    const valid = await onValidatePassword(project.id, enteredPassword);
+    if (!valid) {
       setPasswordError(true);
+      return;
+    }
+
+    setPasswordDialogProject(null);
+    setEnteredPassword('');
+    setPasswordError(false);
+
+    if (passwordIntent === 'delete') {
+      setDeleteDialogProject(project);
+      await runDelete(project);
+    } else {
+      onSelectProject(project);
     }
   };
 
@@ -334,7 +391,9 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
               <Lock className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h2 className="text-[18px] font-medium text-gray-900 tracking-[0]">Passwort erforderlich</h2>
               <p className="text-[16px] font-medium text-[#565656] mt-2 tracking-[0]">
-                Das Projekt "{passwordDialogProject.name}" ist passwortgeschützt.
+                {passwordIntent === 'delete'
+                  ? `Zum Löschen von "${passwordDialogProject.name}" wird das Projekt-Passwort gebraucht.`
+                  : `Das Projekt "${passwordDialogProject.name}" ist passwortgeschützt.`}
               </p>
             </div>
 
@@ -376,15 +435,20 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
               <div className="flex gap-2">
                 <button
                   onClick={handlePasswordSubmit}
-                  className="flex-1 bg-blue-600 text-white py-3 rounded-[8px] hover:bg-blue-700 transition font-medium text-[14px] tracking-[0] cursor-pointer"
+                  className={`flex-1 text-white py-3 rounded-[8px] transition font-medium text-[14px] tracking-[0] cursor-pointer ${
+                    passwordIntent === 'delete'
+                      ? 'bg-red-600 hover:bg-red-700'
+                      : 'bg-blue-600 hover:bg-blue-700'
+                  }`}
                 >
-                  Öffnen
+                  {passwordIntent === 'delete' ? 'Löschen' : 'Öffnen'}
                 </button>
                 <button
                   onClick={() => {
                     setPasswordDialogProject(null);
                     setEnteredPassword('');
                     setPasswordError(false);
+                    setPasswordIntent('open');
                   }}
                   className="flex-1 bg-gray-100 text-gray-700 py-3 rounded-[8px] hover:bg-gray-200 transition font-medium text-[14px] tracking-[0] cursor-pointer"
                 >
@@ -411,15 +475,17 @@ export function ProjectSelector({ projects, onSelectProject, onCreateProject, on
               </p>
             </div>
 
+            {deleteError && (
+              <p className="text-red-500 text-[14px] font-medium mb-4 text-center tracking-[0]">{deleteError}</p>
+            )}
+
             <div className="flex gap-2">
               <button
-                onClick={() => {
-                  onDeleteProject(deleteDialogProject.id);
-                  setDeleteDialogProject(null);
-                }}
-                className="flex-1 bg-red-600 text-white py-3 rounded-[8px] hover:bg-red-700 transition font-medium text-[14px] tracking-[0] cursor-pointer"
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="flex-1 bg-red-600 text-white py-3 rounded-[8px] hover:bg-red-700 transition font-medium text-[14px] tracking-[0] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Löschen
+                {deleting ? 'Wird gelöscht…' : 'Löschen'}
               </button>
               <button
                 onClick={() => setDeleteDialogProject(null)}

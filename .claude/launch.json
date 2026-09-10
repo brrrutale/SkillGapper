@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "skillgapper",
-      "runtimeExecutable": "/Applications/MAMP/bin/php/php8.2.0/bin/php",
-      "runtimeArgs": ["-S", "localhost:8765", "-t", "."],
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
       "port": 8765
     }
   ]

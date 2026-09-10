@@ -3,7 +3,7 @@
  *
  * Single Provider: Azure Functions + Cosmos DB.
  * In Dev (localhost) wird automatisch auf den lokalen Functions-Server
- * (`func start` in azure-functions/, Port 7071) umgeschaltet, sonst zeigt
+ * (`func start` in azure-functions/, Port 7072) umgeschaltet, sonst zeigt
  * die App auf das produktive Function-App in Azure.
  */
 
@@ -16,7 +16,10 @@ export interface AzureConfig {
 export type BackendConfig = AzureConfig;
 
 const PROD_BASE_URL = 'https://skillgapper-api.azurewebsites.net';
-const LOCAL_BASE_URL = 'http://localhost:7071';
+// Bewusst nicht der Functions-Default 7071 — der kollidiert mit anderen
+// lokalen Function-Apps. Der Port ist in azure-functions/local.settings.json
+// unter Host.LocalHttpPort hinterlegt, `func start` nimmt ihn von dort.
+const LOCAL_BASE_URL = 'http://localhost:7072';
 
 function isLocalhost(): boolean {
   if (typeof window === 'undefined') return false;

@@ -670,15 +670,22 @@ export default function App() {
     setCurrentProject(null);
   };
 
-  const handleDeleteProject = async (projectId: string) => {
+  /**
+   * Gibt zurueck, ob geloescht wurde. Frueher wurde der Fehler nur in die
+   * Konsole geschrieben — die im Produktions-Build aber weggestrippt wird.
+   * Ein fehlgeschlagenes Loeschen sah dadurch aus wie ein erfolgreiches:
+   * Dialog zu, Projekt noch da.
+   */
+  const handleDeleteProject = async (projectId: string): Promise<boolean> => {
     try {
       await dataProvider.deleteProject(projectId);
       setProjects(projects.filter(p => p.id !== projectId));
       if (currentProject?.id === projectId) {
         leaveProject();
       }
-    } catch (error) {
-      console.error('Error deleting project:', error);
+      return true;
+    } catch {
+      return false;
     }
   };
 
